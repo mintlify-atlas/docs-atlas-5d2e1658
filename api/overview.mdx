@@ -1,0 +1,98 @@
+---
+title: "API overview"
+description: "Introduction to the Pipedream REST API, including base URL, authentication, and response formats."
+---
+
+The Pipedream REST API lets you manage your Pipedream resources programmatically — workflows, event sources, connected accounts, and more.
+
+## Base URL
+
+All REST API endpoints use this base URL:
+
+```
+https://api.pipedream.com/v1
+```
+
+## Authentication
+
+All requests must include your API key as a Bearer token in the `Authorization` header:
+
+```bash
+Authorization: Bearer <api_key>
+```
+
+See [authentication](/api/authentication) for details on getting your API key and using OAuth for the Connect API.
+
+## Response format
+
+All endpoints return JSON. Successful responses include the requested resource or a `data` array for list endpoints:
+
+```json
+// Single resource
+{
+  "data": {
+    "id": "p_abc123",
+    "name": "My Workflow"
+  }
+}
+
+// List of resources
+{
+  "data": [
+    { "id": "p_abc123", "name": "My Workflow" },
+    { "id": "p_def456", "name": "Another Workflow" }
+  ],
+  "page_info": {
+    "total_count": 2,
+    "count": 2,
+    "start_cursor": "p_abc123",
+    "end_cursor": "p_def456"
+  }
+}
+```
+
+## Pagination
+
+List endpoints support cursor-based pagination. Pass the `after` cursor from a previous response to retrieve the next page:
+
+```bash
+GET /v1/workflows?limit=10&after=p_abc123
+```
+
+Pagination parameters:
+
+| Parameter | Type | Description |
+|---|---|---|
+| `limit` | integer | Number of results to return. Defaults vary by endpoint. |
+| `after` | string | Cursor for the next page of results. |
+| `before` | string | Cursor for the previous page of results. |
+
+## Error codes
+
+Pipedream uses standard HTTP status codes:
+
+| Code | Meaning |
+|---|---|
+| `200` | Success |
+| `400` | Bad request — check your request parameters |
+| `401` | Unauthorized — missing or invalid API key |
+| `403` | Forbidden — your account doesn't have access to this resource |
+| `404` | Not found — the resource doesn't exist |
+| `429` | Too many requests — you've exceeded the rate limit |
+| `500` | Internal server error |
+
+Error responses include a message:
+
+```json
+{
+  "error": "Not found"
+}
+```
+
+## Rate limits
+
+The REST API enforces rate limits to protect platform stability. If you exceed the rate limit, you'll receive a `429` response. Use exponential backoff when retrying.
+
+## Versioning
+
+The current API version is `v1`, included in the base URL. Pipedream will announce breaking changes before introducing a new version.

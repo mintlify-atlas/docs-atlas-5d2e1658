@@ -1,0 +1,88 @@
+---
+title: "Amazon S3 destination"
+description: "Write events from your workflows directly to an Amazon S3 bucket."
+---
+
+The S3 destination lets you send event data to an Amazon S3 bucket asynchronously from any Node.js code step. Pipedream handles batching and delivery after your step completes.
+
+## Prerequisites
+
+- An AWS account connected to Pipedream (connect it in **Settings > Accounts**)
+- An S3 bucket in your AWS account
+- The bucket must grant Pipedream write permissions (see below)
+
+## Basic usage
+
+```javascript
+$send.s3({
+  bucket: "your-bucket-here",
+  prefix: "your-prefix/",
+  payload: event.body,
+});
+```
+
+Pipedream writes the payload as a new object in the bucket. The object key is constructed from the prefix you provide, plus a unique identifier.
+
+## Parameters
+
+<ParamField path="bucket" type="string" required>
+  The name of the S3 bucket to write to. The bucket must exist in your AWS account and Pipedream must have write access.
+</ParamField>
+
+<ParamField path="payload" type="any" required>
+  The data to write to S3. Pipedream serializes objects as JSON. You can pass `event.body`, a custom object, or any serializable value.
+</ParamField>
+
+<ParamField path="prefix" type="string">
+  An optional key prefix for objects written to the bucket. Use this to organize events into folders, for example `"logs/2024/"`. Defaults to the root of the bucket if omitted.
+</ParamField>
+
+## Set up S3 bucket permissions
+
+Your S3 bucket must allow Pipedream to write objects. Add the following policy to your bucket, replacing `your-bucket-name` with your actual bucket name:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "arn:aws:iam::203863979340:root"
+      },
+      "Action": [
+        "s3:PutObject"
+      ],
+      "Resource": "arn:aws:s3:::your-bucket-name/*"
+    }
+  ]
+}
+```
+
+<Warning>
+  Do not grant broader permissions than `s3:PutObject` on the specific bucket path. Avoid using `*` for the principal or action.
+</Warning>
+
+## Example: archive webhook payloads
+
+```javascript
+export default defineComponent({
+  async run({ steps, $ }) {
+    $send.s3({
+      bucket: "webhook-archive",
+      prefix: `events/${new Date().toISOString().slice(0, 10)}/`,
+      payload: {
+        receivedAt: new Date().toISOString(),
+        body: steps.trigger.event.body,
+        headers: steps.trigger.event.headers,
+      },
+    });
+  },
+});
+```
+
+This writes each incoming webhook payload to a date-partitioned prefix in S3, making it easy to query with Athena or load into a data warehouse.
+
+<Note>
+  Delivery is asynchronous. The `$send.s3()` call returns immediately — your step does not wait for the object to be written before continuing.
+</Note>

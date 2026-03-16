@@ -1,0 +1,177 @@
+---
+title: "External users"
+description: "Manage connected accounts for end users in your system using their external user IDs."
+---
+
+In Pipedream Connect, each connected account belongs to an **external user** — a user in your system identified by an `external_user_id` you supply when creating a [Connect token](/api/connect/tokens). The `external_user_id` is typically your database user ID, a UUID, or any other stable, unique identifier you use internally.
+
+Use the external users endpoints to retrieve all accounts connected by a specific user, or to delete all of a user's accounts at once.
+
+## Get accounts for an external user
+
+```
+GET /v1/connect/{project_id}/users/{external_user_id}/accounts
+```
+
+Returns all connected accounts belonging to a specific external user.
+
+### Request
+
+```bash
+curl https://api.pipedream.com/v1/connect/<project_id>/users/user-123/accounts \
+  -H "Authorization: Bearer <access_token>"
+```
+
+### Path parameters
+
+<ParamField path="project_id" type="string" required>
+  Your Pipedream project ID.
+</ParamField>
+
+<ParamField path="external_user_id" type="string" required>
+  The user's ID in your system. This is the value you passed as `external_user_id` when creating the Connect token.
+</ParamField>
+
+### Query parameters
+
+<ParamField query="app" type="string">
+  Filter by app name slug to retrieve only accounts for a specific app (for example, `github` or `slack`).
+</ParamField>
+
+<ParamField query="include_credentials" type="boolean">
+  When `true`, the response includes account credentials. Defaults to `false`. Only request credentials server-side.
+</ParamField>
+
+<ParamField query="limit" type="integer">
+  Maximum number of accounts to return.
+</ParamField>
+
+<ParamField query="after" type="string">
+  Pagination cursor.
+</ParamField>
+
+### Response
+
+```json
+{
+  "data": [
+    {
+      "id": "apn_abc123",
+      "name": "Jane's GitHub",
+      "external_id": "user-123",
+      "healthy": true,
+      "dead": false,
+      "created_at": "2024-01-15T10:30:00.000Z",
+      "updated_at": "2024-03-01T08:15:00.000Z",
+      "app": {
+        "id": "app_github",
+        "name": "GitHub",
+        "name_slug": "github",
+        "auth_type": "oauth"
+      }
+    },
+    {
+      "id": "apn_def456",
+      "name": "Jane's Slack",
+      "external_id": "user-123",
+      "healthy": true,
+      "dead": false,
+      "created_at": "2024-02-01T09:00:00.000Z",
+      "updated_at": "2024-02-01T09:00:00.000Z",
+      "app": {
+        "name": "Slack",
+        "name_slug": "slack",
+        "auth_type": "oauth"
+      }
+    }
+  ],
+  "page_info": {
+    "total_count": 2,
+    "count": 2,
+    "start_cursor": "apn_abc123",
+    "end_cursor": "apn_def456"
+  }
+}
+```
+
+<ResponseField name="data" type="array">
+  Array of connected account objects for the user.
+</ResponseField>
+
+<ResponseField name="data[].id" type="string">
+  Unique account ID, prefixed with `apn_`.
+</ResponseField>
+
+<ResponseField name="data[].name" type="string">
+  Display name of the connected account.
+</ResponseField>
+
+<ResponseField name="data[].external_id" type="string">
+  The external user ID that owns this account.
+</ResponseField>
+
+<ResponseField name="data[].healthy" type="boolean">
+  Whether the account credentials are valid and working.
+</ResponseField>
+
+<ResponseField name="data[].app" type="object">
+  Metadata about the connected app, including its `name_slug` and `auth_type`.
+</ResponseField>
+
+### Example: check if a user has connected a specific app
+
+```typescript
+import { createBackendClient } from "@pipedream/sdk/server";
+
+const client = createBackendClient({
+  environment: "production",
+  projectId: process.env.PIPEDREAM_PROJECT_ID,
+  credentials: {
+    clientId: process.env.PIPEDREAM_CLIENT_ID,
+    clientSecret: process.env.PIPEDREAM_CLIENT_SECRET,
+  },
+});
+
+// Get all accounts for user-123, filtered to GitHub only
+const { data: accounts } = await client.getAccounts({
+  external_user_id: "user-123",
+  app: "github",
+});
+
+const hasGithub = accounts.length > 0;
+console.log(`User has connected GitHub: ${hasGithub}`);
+```
+
+## Delete all accounts for an external user
+
+```
+DELETE /v1/connect/{project_id}/users/{external_user_id}
+```
+
+Deletes all connected accounts for an external user and removes the user from the project. Use this when a user deletes their account in your system.
+
+### Request
+
+```bash
+curl -X DELETE \
+  https://api.pipedream.com/v1/connect/<project_id>/users/user-123 \
+  -H "Authorization: Bearer <access_token>"
+```
+
+### Path parameters
+
+<ParamField path="project_id" type="string" required>
+  Your Pipedream project ID.
+</ParamField>
+
+<ParamField path="external_user_id" type="string" required>
+  The external user ID. All accounts belonging to this user are deleted.
+</ParamField>
+
+### Response
+
+Returns `200 OK` with no body on success.
+
+<Warning>
+This operation is irreversible. All connected accounts for the user are permanently deleted.
+</Warning>

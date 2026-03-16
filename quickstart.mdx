@@ -1,80 +1,103 @@
 ---
 title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+description: "Build your first workflow in minutes — trigger it with an HTTP request and process data with a Node.js code step."
 ---
 
-## Get started in three steps
+In this guide you'll create a workflow that accepts an HTTP request, processes the payload with a Node.js code step, and returns a response.
 
-Get your documentation site running locally and make your first customization.
+<Steps>
+  <Step title="Create an account">
+    Go to [pipedream.com](https://pipedream.com/auth/signup) and sign up for free. No credit card required.
+  </Step>
 
-### Step 1: Set up your local environment
+  <Step title="Create a new workflow">
+    From the [Pipedream dashboard](https://pipedream.com), click **+ New Workflow**. Give your workflow a name, then click **Create**.
+  </Step>
 
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
+  <Step title="Add an HTTP trigger">
+    On the trigger step, click **Select a trigger** and choose **HTTP / Webhook**. Then select **New Requests**.
 
-### Step 2: Deploy your changes
+    Pipedream immediately provisions a unique URL for your workflow — something like `https://eo1a2b3c4d.m.pipedream.net`. Copy this URL; you'll use it to send test requests.
 
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
+    <Tip>The trigger URL is ready as soon as you select the HTTP trigger — no deploy step is required to start testing.</Tip>
+  </Step>
 
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
+  <Step title="Add a Node.js code step">
+    Click **+** below the trigger to add a new step. Choose **Run custom code** and select **Node.js**.
 
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
+    Pipedream opens an in-browser code editor pre-populated with a default export. Replace the contents with the following:
 
-### Step 3: Go live
+    ```javascript
+    export default defineComponent({
+      async run({ steps, $ }) {
+        const body = steps.trigger.event.body;
 
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
+        // Transform or validate the incoming payload
+        const response = {
+          message: `Received ${Object.keys(body).length} field(s)`,
+          data: body,
+          ts: new Date().toISOString(),
+        };
+
+        return response;
+      },
+    });
+    ```
+
+    This step reads the request body from `steps.trigger.event.body`, builds a response object, and returns it. The return value is available to all downstream steps as `steps.<step_name>.$return_value`.
+  </Step>
+
+  <Step title="Test the workflow">
+    Click **Test** at the top of the trigger step to send a sample request, or send a real HTTP request from your terminal:
+
+    ```bash
+    curl -X POST https://your-endpoint.m.pipedream.net \
+      -H "Content-Type: application/json" \
+      -d '{"name": "Alice", "action": "signup"}'
+    ```
+
+    Pipedream runs each step and displays the result inline. Expand the code step to inspect its return value:
+
+    ```json
+    {
+      "message": "Received 2 field(s)",
+      "data": { "name": "Alice", "action": "signup" },
+      "ts": "2024-04-10T15:30:00.000Z"
+    }
+    ```
+
+    <Note>Each test run is isolated. Results appear in the **Inspector** panel on the right so you can step through the execution.</Note>
+  </Step>
+
+  <Step title="Deploy the workflow">
+    When you're satisfied with the results, click **Deploy** in the top-right corner. Your workflow is now live and will process every incoming request automatically.
+
+    Pipedream runs your workflow on managed infrastructure — there are no servers to provision, containers to build, or scaling decisions to make.
+  </Step>
+</Steps>
+
+## What you built
+
+You created a workflow with two steps:
+
+| Step | Type | What it does |
+|------|------|--------------|
+| `trigger` | HTTP / Webhook | Exposes a unique URL and emits each request as an event |
+| `steps.code` | Node.js code step | Reads the request body and returns a transformed response |
 
 ## Next steps
 
-Now that you have your docs running, explore these key features:
-
 <CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
+  <Card title="Key concepts" icon="lightbulb" href="/key-concepts">
+    Understand workflows, steps, triggers, and the rest of the Pipedream data model
+  </Card>
+  <Card title="Workflow steps" icon="list-ol" href="/workflows/steps">
+    Learn how to pass data between steps and use pre-built actions
+  </Card>
+  <Card title="Trigger types" icon="bolt" href="/workflows/triggers">
+    Add schedule, app event, or other trigger types to your workflows
+  </Card>
+  <Card title="Custom code" icon="code" href="/code/overview">
+    Write Node.js, Python, Go, or Bash steps with full package support
+  </Card>
 </CardGroup>
-
-<Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
-</Note>

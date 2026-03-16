@@ -1,0 +1,56 @@
+---
+title: "Destinations overview"
+description: "Deliver events asynchronously to external services like Amazon S3, HTTP endpoints, and email."
+---
+
+Destinations let you send data from your workflows to external services without blocking workflow execution. When you call a `$send.*` function in a code step, Pipedream delivers the event asynchronously — your workflow continues immediately without waiting for the delivery to complete.
+
+This fire-and-forget model means:
+- Your workflow step returns as soon as the `$send.*` call is made
+- Delivery happens in the background, after the step completes
+- You don't receive a response from the destination in your workflow
+
+## Supported destinations
+
+<CardGroup cols={2}>
+  <Card title="Amazon S3" icon="aws" href="/destinations/s3">
+    Write events directly to an S3 bucket with a configurable key prefix.
+  </Card>
+  <Card title="HTTP" icon="webhook" href="/destinations/http">
+    POST events to any HTTP endpoint or webhook URL.
+  </Card>
+  <Card title="Email" icon="envelope" href="/destinations/email">
+    Send email to your Pipedream account's email address.
+  </Card>
+  <Card title="Snowflake" icon="snowflake" href="https://pipedream.com/docs/destinations/snowflake/">
+    Stream events into a Snowflake data warehouse.
+  </Card>
+  <Card title="SSE" icon="signal" href="https://pipedream.com/docs/destinations/sse/">
+    Emit events to a private Server-Sent Events stream.
+  </Card>
+</CardGroup>
+
+## How destinations work
+
+You call `$send.*` functions inside any [Node.js code step](https://pipedream.com/docs/code/nodejs/). Pipedream intercepts these calls and handles batching, retries, and delivery.
+
+```javascript
+// Example: send data to S3 and an HTTP endpoint in the same step
+$send.s3({
+  bucket: "my-events-bucket",
+  prefix: "events/",
+  payload: event.body,
+});
+
+$send.http({
+  method: "POST",
+  url: "https://hooks.example.com/ingest",
+  data: event.body,
+});
+```
+
+Both calls return immediately. Pipedream queues the deliveries and processes them after the step completes.
+
+<Note>
+  Because delivery is asynchronous, you cannot read the HTTP response or confirm delivery within the same workflow run. Use [actions](https://pipedream.com/docs/components/actions/) if you need synchronous, response-aware integrations.
+</Note>

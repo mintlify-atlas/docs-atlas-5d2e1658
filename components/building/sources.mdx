@@ -1,0 +1,270 @@
+---
+title: "Building event sources"
+description: "Learn how to build event sources that trigger workflows when new data arrives."
+---
+
+Event sources watch for new data from external services and emit events when they find it. Each emitted event can trigger one or more workflows. Sources can poll an API on a schedule or receive data via webhook.
+
+## Source component structure
+
+A source component is a JavaScript module with these top-level fields:
+
+```javascript
+export default {
+  name: "New Star",           // Human-readable name shown in the UI
+  key: "github-new-star",     // Unique identifier: app_name-component_name
+  description: "Emit new event when a repository is starred",
+  version: "0.1.0",           // Semver version string
+  type: "source",
+  props: {},                  // Input configuration
+  async run(event) {},        // Executes on every trigger
+};
+```
+
+## HTTP trigger
+
+Use `$.interface.http` to expose a unique HTTP endpoint. Pipedream calls `run()` with the incoming request whenever a POST is made to that endpoint.
+
+```javascript
+export default {
+  name: "My HTTP Source",
+  key: "my-app-http-source",
+  description: "Accept HTTP requests and emit them as events",
+  version: "0.1.0",
+  type: "source",
+  props: {
+    http: {
+      type: "$.interface.http",
+      customResponse: true, // Set to respond with a custom HTTP response
+    },
+  },
+  async run(event) {
+    const { body, headers, method, path, query } = event;
+    console.log(`Received ${method} request`);
+
+    // Emit the event
+    this.$emit(body, {
+      id: headers["x-request-id"] || Date.now().toString(),
+      summary: `New ${method} request`,
+      ts: Date.now(),
+    });
+
+    // Optionally send a custom HTTP response
+    event.respond({
+      status: 200,
+      body: { ok: true },
+    });
+  },
+};
+```
+
+The `event` object passed to `run()` contains:
+
+| Property | Description |
+|---|---|
+| `body` | Parsed request body |
+| `headers` | Request headers |
+| `method` | HTTP method |
+| `path` | Request path |
+| `query` | Query string parameters |
+
+## Timer trigger
+
+Use `$.interface.timer` to run a source on a schedule. The timer fires `run()` according to a cron expression or interval.
+
+```javascript
+export default {
+  name: "Scheduled Poll",
+  key: "my-app-scheduled-poll",
+  description: "Poll an API every 15 minutes",
+  version: "0.1.0",
+  type: "source",
+  props: {
+    timer: {
+      type: "$.interface.timer",
+      default: {
+        intervalSeconds: 900, // 15 minutes
+      },
+    },
+  },
+  async run() {
+    // Fetch data and emit events
+    const data = await this.fetchData();
+    for (const item of data) {
+      this.$emit(item, {
+        id: item.id,
+        summary: item.title,
+        ts: Date.parse(item.created_at),
+      });
+    }
+  },
+};
+```
+
+The `default` value sets the initial schedule. Users can override this in the UI. To use a cron expression instead of an interval:
+
+```javascript
+timer: {
+  type: "$.interface.timer",
+  default: {
+    cron: "0 * * * *", // Every hour at :00
+  },
+},
+```
+
+## Persisting state with `$.service.db`
+
+Use `$.service.db` to store key-value data between runs. This is the standard way to track which events have already been emitted so you don't emit duplicates.
+
+```javascript
+export default {
+  name: "New Repo Issue",
+  key: "my-app-new-issue",
+  description: "Emit new event for each new issue",
+  version: "0.1.0",
+  type: "source",
+  props: {
+    db: "$.service.db",
+    timer: {
+      type: "$.interface.timer",
+      default: { intervalSeconds: 900 },
+    },
+  },
+  methods: {
+    _getLastId() {
+      return this.db.get("lastId") ?? 0;
+    },
+    _setLastId(id) {
+      this.db.set("lastId", id);
+    },
+  },
+  async run() {
+    const lastId = this._getLastId();
+    const issues = await this.fetchIssues({ since: lastId });
+
+    for (const issue of issues) {
+      if (issue.id > lastId) {
+        this.$emit(issue, {
+          id: issue.id.toString(),
+          summary: `New issue: ${issue.title}`,
+          ts: Date.parse(issue.created_at),
+        });
+      }
+    }
+
+    if (issues.length > 0) {
+      const maxId = Math.max(...issues.map((i) => i.id));
+      this._setLastId(maxId);
+    }
+  },
+};
+```
+
+`this.db.get(key)` returns the stored value, or `undefined` if the key hasn't been set. `this.db.set(key, value)` persists any JSON-serializable value.
+
+## Emitting events
+
+Call `this.$emit(event, metadata)` to emit an event from a source.
+
+```javascript
+this.$emit(
+  { id: 42, title: "New feature request" }, // The event payload
+  {
+    id: "42",              // Required: unique ID for deduplication
+    summary: "New issue: New feature request", // Human-readable description
+    ts: Date.now(),        // Timestamp in milliseconds
+  }
+);
+```
+
+<Warning>
+The `id` field in the metadata must be unique across all emitted events for a given source instance. Pipedream uses it to deduplicate events — if you emit two events with the same `id`, only the first is processed.
+</Warning>
+
+## Complete polling source example
+
+This example polls the GitHub API for new commits on a branch and deduplicates using `$.service.db`.
+
+```javascript
+import { axios } from "@pipedream/platform";
+
+export default {
+  name: "New Commit (Polling)",
+  key: "github-new-commit-polling",
+  description: "Emit new event when commits are pushed to a branch",
+  version: "0.1.0",
+  type: "source",
+  props: {
+    github: {
+      type: "app",
+      app: "github",
+    },
+    db: "$.service.db",
+    timer: {
+      type: "$.interface.timer",
+      default: { intervalSeconds: 900 },
+    },
+    owner: {
+      type: "string",
+      label: "Repository owner",
+    },
+    repo: {
+      type: "string",
+      label: "Repository name",
+    },
+    branch: {
+      type: "string",
+      label: "Branch",
+      default: "main",
+    },
+  },
+  methods: {
+    _getSavedShas() {
+      return this.db.get("savedShas") || [];
+    },
+    _setSavedShas(shas) {
+      this.db.set("savedShas", shas);
+    },
+  },
+  async run() {
+    const savedShas = this._getSavedShas();
+
+    const commits = await axios(this, {
+      url: `https://api.github.com/repos/${this.owner}/${this.repo}/commits`,
+      headers: {
+        Authorization: `Bearer ${this.github.$auth.oauth_access_token}`,
+      },
+      params: {
+        sha: this.branch,
+        per_page: 20,
+      },
+    });
+
+    const newCommits = commits.filter((c) => !savedShas.includes(c.sha));
+
+    for (const commit of newCommits.reverse()) {
+      this.$emit(commit, {
+        id: commit.sha,
+        summary: `New commit: ${commit.commit.message}`,
+        ts: Date.parse(commit.commit.author.date),
+      });
+      savedShas.push(commit.sha);
+    }
+
+    this._setSavedShas(savedShas);
+  },
+};
+```
+
+## Deploy hooks
+
+Use `hooks.deploy()` to run logic once when the source is first deployed — for example, to emit a sample event or fetch historical data:
+
+```javascript
+hooks: {
+  async deploy() {
+    // Emit up to 10 historical events on first deploy
+    await this.run({ limit: 10 });
+  },
+},
+```

@@ -1,0 +1,177 @@
+---
+title: "Key concepts"
+description: "The core building blocks of Pipedream: workflows, steps, triggers, sources, actions, props, connected accounts, and destinations."
+---
+
+Pipedream is built around a small set of concepts. Understanding them will help you move faster as you build.
+
+<CardGroup cols={2}>
+  <Card title="Workflows" icon="diagram-project" href="/workflows/overview">
+    Sequences of steps triggered by an event
+  </Card>
+  <Card title="Triggers" icon="bolt" href="/workflows/triggers">
+    HTTP, schedule, or app events that start a workflow
+  </Card>
+  <Card title="Actions" icon="play" href="/actions/overview">
+    Pre-built steps for common operations across 1,000+ apps
+  </Card>
+  <Card title="Code steps" icon="code" href="/code/overview">
+    Custom Node.js, Python, Go, or Bash logic
+  </Card>
+  <Card title="Event sources" icon="satellite-dish" href="/sources/overview">
+    Reusable components that watch for new data and emit events
+  </Card>
+  <Card title="Props" icon="sliders" href="/components/building/props">
+    Typed inputs that configure a step or source
+  </Card>
+  <Card title="Connected accounts" icon="link" href="/components/building/auth">
+    OAuth and API key credentials managed by Pipedream
+  </Card>
+  <Card title="Destinations" icon="paper-plane" href="/destinations/overview">
+    Asynchronous delivery to S3, HTTP, email, and more
+  </Card>
+</CardGroup>
+
+---
+
+## Workflows
+
+A workflow is a sequence of steps that runs in response to an event. Every workflow starts with exactly one trigger and can include any number of subsequent steps. Steps execute in order, top to bottom.
+
+Workflows run on Pipedream's hosted infrastructure. You don't manage servers, containers, or deployments — Pipedream handles scaling and availability automatically.
+
+[Learn more about workflows →](/workflows/overview)
+
+## Triggers
+
+A trigger is the first step in a workflow. It defines what event starts the workflow. Pipedream supports three categories of trigger:
+
+- **HTTP / Webhook** — Pipedream generates a unique URL. Any HTTP request to that URL starts the workflow.
+- **Schedule** — Run a workflow on a cron expression or fixed interval (every 15 minutes, daily at 9am, etc.).
+- **App events** — A connected event source watches a third-party app (GitHub, Slack, Google Sheets, etc.) and emits an event when something new happens.
+
+[Learn more about triggers →](/workflows/triggers)
+
+## Steps
+
+Steps are the units of work inside a workflow. After the trigger, you can add as many steps as you need. Each step receives the original event and the exported data from every previous step.
+
+You reference data from a previous step using `steps.<step_name>.$return_value`. For example:
+
+```javascript
+steps.trigger.event.body   // the HTTP request body
+steps.my_step.$return_value // the return value of "my_step"
+```
+
+[Learn more about steps →](/workflows/steps)
+
+## Event sources
+
+An event source is a reusable component that connects to a third-party API, polls or subscribes to it, and emits events when new data arrives. Sources power the app-event trigger type.
+
+You can use [pre-built sources](https://pipedream.com/apps) for hundreds of apps, or build your own using `defineComponent` with `$.interface.http` or `$.interface.timer`.
+
+[Learn more about event sources →](/sources/overview)
+
+## Actions
+
+Actions are pre-built code steps published to Pipedream's component registry. When you add an action to a workflow, Pipedream renders a form for its inputs — no code required. You can also create and share your own actions.
+
+Example: the **Send a Slack message** action accepts a channel and message text. Pipedream handles the Slack API call, authentication, and error handling.
+
+[Learn more about actions →](/actions/overview)
+
+## Code steps
+
+When pre-built actions don't cover your use case, add a code step. Pipedream supports:
+
+- **Node.js** — import any npm package
+- **Python** — import any PyPI package
+- **Go** — import any Go module
+- **Bash** — run shell commands
+
+Code steps use `defineComponent` as the base API:
+
+```javascript
+export default defineComponent({
+  async run({ steps, $ }) {
+    // steps contains data from all previous steps
+    // $ provides helper methods like $.end() and $send
+    return { result: "some value" };
+  },
+});
+```
+
+[Learn more about code steps →](/code/overview)
+
+## Props
+
+Props are the typed inputs to a step or source. Pipedream renders props as a form in the workflow editor. Prop types include `string`, `integer`, `boolean`, `object`, `array`, `app` (connected account), and interface types like `$.interface.http` and `$.interface.timer`.
+
+```javascript
+export default defineComponent({
+  props: {
+    name: {
+      type: "string",
+      label: "Name",
+      description: "The name to greet",
+    },
+  },
+  async run({ steps, $ }) {
+    return `Hello, ${this.name}!`;
+  },
+});
+```
+
+[Learn more about props →](/components/building/props)
+
+## Connected accounts
+
+Pipedream manages OAuth flows, token refresh, and credential storage for connected apps. In a code step you access a connected account via an `app` prop:
+
+```javascript
+export default defineComponent({
+  props: {
+    slack: {
+      type: "app",
+      app: "slack",
+    },
+  },
+  async run({ steps, $ }) {
+    // this.slack.$auth contains the OAuth token and other credentials
+    const token = this.slack.$auth.oauth_access_token;
+  },
+});
+```
+
+[Learn more about connected accounts →](/components/building/auth)
+
+## Destinations
+
+Destinations let you deliver data asynchronously from a workflow step using `$send`. Pipedream batches and delivers the events for you.
+
+```javascript
+// Send to Amazon S3
+$send.s3({
+  bucket: "my-bucket",
+  prefix: "events/",
+  payload: steps.trigger.event.body,
+});
+
+// Send an email
+$send.email({
+  subject: "New event received",
+  text: JSON.stringify(steps.trigger.event.body),
+});
+
+// POST to an HTTP endpoint
+$send.http({
+  method: "POST",
+  url: "https://example.com/webhook",
+  data: steps.trigger.event.body,
+});
+```
+
+Supported destinations: Amazon S3, Snowflake, HTTP, Email, SSE.
+
+[Learn more about destinations →](/destinations/overview)

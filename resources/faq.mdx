@@ -1,0 +1,116 @@
+---
+title: "FAQ"
+description: "Answers to frequently asked questions about Pipedream."
+---
+
+<AccordionGroup>
+  <Accordion title="Is Pipedream free?">
+    Yes. Pipedream has a generous free tier for individual developers that requires no credit card. The free tier includes access to all 1,000+ app integrations, custom code steps, and event sources, subject to daily credit and execution limits.
+
+    For higher usage or team features, paid plans are available at [pipedream.com/pricing](https://pipedream.com/pricing).
+  </Accordion>
+
+  <Accordion title="What languages can I use in code steps?">
+    You can write code steps in:
+
+    - **Node.js** — the most feature-rich option, with full access to the Pipedream SDK
+    - **Python**
+    - **Go**
+    - **Bash**
+
+    Each language supports importing packages from its respective package manager. Pipedream automatically resolves and downloads dependencies at runtime.
+  </Accordion>
+
+  <Accordion title="How do I connect my app account?">
+    1. Open a workflow and add a new step (or create a new source/action)
+    2. Select the app you want to connect
+    3. Click **Connect** and follow the OAuth or API key flow
+    4. Your connected account is saved to your Pipedream account and reusable across all workflows
+
+    You can manage connected accounts at any time from **Settings → Connected Accounts**.
+  </Accordion>
+
+  <Accordion title="What's the difference between a source and a trigger?">
+    A **source** is a Pipedream component that watches for new events from a service (like a new GitHub PR, a new RSS feed item, or an incoming HTTP request) and emits those events.
+
+    A **trigger** is a source attached to a specific workflow. When the source emits an event, it triggers the workflow to run.
+
+    All triggers are sources, but a source can also be used independently — for example, to consume events via the REST API or SSE stream without running a workflow.
+  </Accordion>
+
+  <Accordion title="Can I use npm packages in Node.js steps?">
+    Yes. Import any npm package directly in your code step using an `import` or `require` statement. Pipedream parses your code and automatically installs the required packages at runtime — no `package.json` or manual installation needed.
+
+    ```javascript
+    import axios from "axios";
+    import { format } from "date-fns";
+    ```
+  </Accordion>
+
+  <Accordion title="How do I handle secrets and environment variables?">
+    Store secrets as environment variables instead of hardcoding them in workflow code.
+
+    1. Go to **Settings → Environment Variables**
+    2. Add your key-value pair
+    3. Reference the variable in Node.js with `process.env.YOUR_KEY`, or in Python with `os.environ['YOUR_KEY']`
+
+    For OAuth-based apps, use Pipedream's connected accounts feature. Credentials are stored encrypted and injected at runtime.
+  </Accordion>
+
+  <Accordion title="What happens if my workflow fails?">
+    When a workflow execution fails, Pipedream:
+
+    - Marks the execution as errored in the workflow event history
+    - Shows the step where the error occurred and the full error message
+    - Sends an error notification (if configured in workflow settings)
+
+    You can inspect the failed execution, fix the issue, and replay the event directly from the event history panel.
+  </Accordion>
+
+  <Accordion title="Can I run workflows on a schedule?">
+    Yes. Use a **Timer** trigger to run a workflow on a cron schedule or at a fixed interval. You can configure the interval (e.g., every 15 minutes) or provide a custom cron expression (e.g., `0 9 * * 1-5` to run every weekday at 9am UTC).
+  </Accordion>
+
+  <Accordion title="How do I debug a failing workflow?">
+    1. Open the workflow and click on the **Events** tab to see recent executions
+    2. Click on a failed execution to see step-by-step results
+    3. Inspect the error message and the input/output of each step
+    4. Use `console.log()` (Node.js) or `print()` (Python) in code steps — output appears in the step logs
+    5. Fix the issue in the workflow editor and click **Test** to re-run with the same event
+    6. Replay the original event once you've confirmed the fix works
+  </Accordion>
+
+  <Accordion title="Is Pipedream SOC 2 compliant?">
+    Yes. Pipedream has demonstrated SOC 2 Type 2 compliance. You can request a copy of the report by emailing [support@pipedream.com](mailto:support@pipedream.com).
+
+    For more details on security practices, see the [Security page](/resources/security).
+  </Accordion>
+
+  <Accordion title="How do I export data from one step to use in another?">
+    Every step automatically exports its return value, which is available to all subsequent steps as `steps.<step_name>.$return_value`.
+
+    In a Node.js step, return the data you want to pass downstream:
+
+    ```javascript
+    export default defineComponent({
+      async run({ steps, $ }) {
+        return { message: "hello", count: 42 };
+      }
+    });
+    ```
+
+    In a later step, access it with:
+
+    ```javascript
+    const data = steps.my_step.$return_value;
+    ```
+
+    You can also reference step exports using the **object explorer** in the Pipedream workflow editor without writing any code.
+  </Accordion>
+
+  <Accordion title="Can I build private components?">
+    Yes. You can build sources and actions that are private to your account. Private components behave the same as public ones — you can use them in any of your workflows — but they are not published to the Pipedream registry for others to use.
+
+    To share components with the community, follow the [contribution guidelines](https://pipedream.com/docs/components/guidelines/) and submit a pull request to the [GitHub repo](https://github.com/PipedreamHQ/pipedream).
+  </Accordion>
+</AccordionGroup>

@@ -1,0 +1,132 @@
+---
+title: "Python"
+description: "Write Python code steps with full PyPI package support and access to upstream step data."
+---
+
+## Overview
+
+Pipedream runs Python 3.x in code steps. You can import any PyPI package by declaring the import at the top of the file — Pipedream automatically installs the dependency. No `requirements.txt` needed.
+
+## Basic structure
+
+Every Python step defines a `handler` function that accepts a `pd` argument:
+
+```python
+def handler(pd: "pipedream"):
+    return "hello from Python"
+```
+
+The `pd` object provides access to upstream step data and Pipedream helpers.
+
+## Importing PyPI packages
+
+Import any PyPI package at the top of the file:
+
+```python
+import requests
+import pandas as pd_lib
+from bs4 import BeautifulSoup
+
+def handler(pd: "pipedream"):
+    response = requests.get("https://api.example.com/data")
+    return response.json()
+```
+
+Pipedream installs the package the first time the step runs and caches it for future runs.
+
+## Accessing step data
+
+Read data from upstream steps using `pd.steps`:
+
+```python
+def handler(pd: "pipedream"):
+    # Trigger event data
+    trigger_event = pd.steps["trigger"]["event"]
+    request_body = pd.steps["trigger"]["event"]["body"]
+
+    # Output from a previous step named "step_1"
+    prev_result = pd.steps["step_1"]["$return_value"]
+
+    return {"trigger": trigger_event, "prev": prev_result}
+```
+
+## Returning data
+
+`return` a value from `handler` to export it as the step result. Downstream steps can access it at `steps.<step_name>.$return_value`.
+
+```python
+def handler(pd: "pipedream"):
+    return {
+        "message": "processed",
+        "count": 42,
+    }
+```
+
+Return values must be JSON-serializable.
+
+## Making HTTP requests
+
+Use the `requests` library for HTTP calls:
+
+```python
+import requests
+
+def handler(pd: "pipedream"):
+    api_key = pd.inputs["api_key"] if hasattr(pd, "inputs") else ""
+
+    response = requests.post(
+        "https://api.example.com/messages",
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        },
+        json={
+            "text": pd.steps["trigger"]["event"]["body"]["message"],
+        },
+    )
+    response.raise_for_status()
+    return response.json()
+```
+
+## Using pandas for data processing
+
+```python
+import pandas as pd_lib
+import requests
+
+def handler(pd: "pipedream"):
+    # Fetch CSV data
+    url = pd.steps["trigger"]["event"]["body"]["csv_url"]
+    response = requests.get(url)
+
+    # Parse with pandas
+    from io import StringIO
+    df = pd_lib.read_csv(StringIO(response.text))
+
+    return {
+        "row_count": len(df),
+        "columns": list(df.columns),
+        "summary": df.describe().to_dict(),
+    }
+```
+
+## Environment variables
+
+Access environment variables with `os.environ`:
+
+```python
+import os
+
+def handler(pd: "pipedream"):
+    api_key = os.environ.get("MY_API_KEY")
+    return {"key_set": bool(api_key)}
+```
+
+Set environment variables in **Settings → Environment Variables** in the Pipedream UI.
+
+## Runtime environment
+
+- **Python version**: 3.x
+- **Package manager**: pip (PyPI)
+- **Execution timeout**: 60 seconds by default
+- **Note**: Packages with C extensions (like `numpy`, `pandas`) are supported

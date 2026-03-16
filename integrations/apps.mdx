@@ -1,0 +1,91 @@
+---
+title: "Apps and integrations"
+description: "Find, connect, and use Pipedream's 1,000+ app integrations in your workflows."
+---
+
+## Finding apps
+
+Browse integrations at [pipedream.com/apps](https://pipedream.com/apps). You can search by name, filter by category, and view all available sources and actions for each app.
+
+Each app page shows:
+- All available triggers (sources)
+- All available actions
+- Authentication requirements
+- Links to the open-source component code
+
+## Popular integrations
+
+<CardGroup cols={3}>
+  <Card title="Slack" icon="slack" href="https://pipedream.com/apps/slack">
+    Send messages, create channels, and respond to events.
+  </Card>
+  <Card title="GitHub" icon="github" href="https://pipedream.com/apps/github">
+    Trigger on PRs, issues, pushes, and more.
+  </Card>
+  <Card title="Google Sheets" icon="table" href="https://pipedream.com/apps/google-sheets">
+    Read and write rows, respond to new entries.
+  </Card>
+  <Card title="Stripe" icon="stripe" href="https://pipedream.com/apps/stripe">
+    Handle payments, subscriptions, and webhooks.
+  </Card>
+  <Card title="HubSpot" icon="hubspot" href="https://pipedream.com/apps/hubspot">
+    Sync contacts, deals, and CRM data.
+  </Card>
+  <Card title="Airtable" icon="table-cells" href="https://pipedream.com/apps/airtable">
+    Read, create, and update records in your bases.
+  </Card>
+  <Card title="Notion" icon="book" href="https://pipedream.com/apps/notion">
+    Create pages, update databases, and more.
+  </Card>
+  <Card title="OpenAI" icon="robot" href="https://pipedream.com/apps/openai">
+    Call the ChatGPT API, generate embeddings, and more.
+  </Card>
+  <Card title="X (Twitter)" icon="twitter" href="https://pipedream.com/apps/twitter">
+    Post tweets and respond to mention events.
+  </Card>
+</CardGroup>
+
+## OAuth authentication
+
+For apps that use OAuth, Pipedream handles the entire auth flow:
+
+1. Click **Connect** on an app in Pipedream
+2. Complete the OAuth authorization in the app's login page
+3. Pipedream stores the access and refresh tokens, encrypted at rest
+4. Tokens are refreshed automatically before they expire
+
+You access the token in code steps via `this.<app>.$auth`, but you never need to manage token refresh yourself.
+
+```javascript
+export default defineComponent({
+  props: {
+    slack: {
+      type: "app",
+      app: "slack",
+    },
+  },
+  async run({ steps, $ }) {
+    // Pipedream injects the token — no refresh logic needed
+    const token = this.slack.$auth.oauth_access_token;
+  },
+});
+```
+
+## API key authentication
+
+For apps that use API keys:
+
+1. Click **Connect** on the app
+2. Enter your API key in the prompt
+3. Pipedream stores it encrypted and injects it into your code steps
+
+## Connecting accounts in workflows
+
+When you add an action step to a workflow, Pipedream prompts you to connect an account for that app. You can:
+- Connect a new account
+- Select a previously connected account
+- Connect multiple accounts for the same app (useful for multi-tenant workflows)
+
+## Open-source components
+
+All pre-built sources and actions are open source under the [components directory](https://github.com/PipedreamHQ/pipedream/tree/master/components) on GitHub. If you find a bug or want to add a new feature, [contributions are welcome](https://pipedream.com/docs/components/guidelines/#process).

@@ -1,0 +1,100 @@
+---
+title: "API authentication"
+description: "How to authenticate requests to the Pipedream REST API and Connect API."
+---
+
+Pipedream supports two authentication methods: API key authentication for the REST API, and OAuth client credentials for the Connect API.
+
+## REST API: API key
+
+### Getting your API key
+
+1. Go to [pipedream.com/settings/account](https://pipedream.com/settings/account)
+2. Scroll to the **API** section
+3. Copy your API key
+
+<Warning>
+Keep your API key secret. Anyone with your key can make requests on your behalf. Do not commit it to source control or include it in client-side code.
+</Warning>
+
+### Using the API key
+
+Include your API key as a Bearer token in the `Authorization` header on every request:
+
+```bash
+curl https://api.pipedream.com/v1/users/me \
+  -H "Authorization: Bearer <api_key>"
+```
+
+Replace `<api_key>` with your actual API key.
+
+### Example: list your workflows
+
+```bash
+curl https://api.pipedream.com/v1/workflows \
+  -H "Authorization: Bearer <api_key>"
+```
+
+## Connect API: OAuth client credentials
+
+The [Pipedream Connect API](/api/connect/tokens) uses OAuth 2.0 client credentials. This gives you a short-lived access token rather than a long-lived API key, which is more secure for server-side applications.
+
+### Getting your OAuth credentials
+
+1. Go to your Pipedream project settings
+2. Copy your **OAuth client ID** and **OAuth client secret**
+
+### Obtaining an access token
+
+Exchange your client credentials for an access token at the token endpoint:
+
+```bash
+curl -X POST https://api.pipedream.com/v1/oauth/token \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "grant_type=client_credentials" \
+  -d "client_id=<client_id>" \
+  -d "client_secret=<client_secret>" \
+  -d "project_id=<project_id>" \
+  -d "environment=production"
+```
+
+The response includes an `access_token` and `expires_in` field:
+
+```json
+{
+  "access_token": "eyJ...",
+  "expires_in": 3600,
+  "token_type": "Bearer"
+}
+```
+
+Use the access token in the `Authorization` header the same way as an API key:
+
+```bash
+curl https://api.pipedream.com/v1/connect/<project_id>/tokens \
+  -H "Authorization: Bearer <access_token>" \
+  -H "Content-Type: application/json" \
+  -d '{"external_user_id": "user-123"}'
+```
+
+### Using the SDK
+
+The [Pipedream SDK](/connect/sdk/server-client) handles OAuth token management automatically. You provide your credentials once when creating the client:
+
+```typescript
+import { createBackendClient } from "@pipedream/sdk/server";
+
+const client = createBackendClient({
+  environment: "production",
+  projectId: "<project_id>",
+  credentials: {
+    clientId: "<client_id>",
+    clientSecret: "<client_secret>",
+  },
+});
+
+// The SDK automatically fetches and refreshes the access token
+const tokenResponse = await client.createConnectToken({
+  external_user_id: "user-123",
+});
+```

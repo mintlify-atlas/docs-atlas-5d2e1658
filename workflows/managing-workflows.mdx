@@ -1,0 +1,133 @@
+---
+title: "Managing workflows"
+description: "Enable and disable workflows, inspect execution logs, view version history, organize with projects, and configure environment variables."
+---
+
+Pipedream gives you tools to operate, debug, and organize your workflows after you've built them.
+
+## Enabling and disabling workflows
+
+A deployed workflow is **active** by default — it will process events as they arrive. You can pause a workflow without deleting it.
+
+To disable a workflow:
+
+1. Open the workflow in the editor.
+2. Click the toggle next to the workflow name at the top of the page.
+3. The toggle turns grey and the workflow stops processing new events.
+
+To re-enable it, click the toggle again. Events that arrived while the workflow was disabled are not replayed.
+
+<Warning>Disabling a workflow does not delete it or its execution history. You can re-enable it at any time.</Warning>
+
+## Viewing execution logs
+
+Every workflow execution is logged. To inspect a run:
+
+1. Open the workflow.
+2. Click the **Inspector** panel on the right side of the editor.
+3. Select any execution from the list to see the step-by-step results.
+
+For each step you'll see:
+- The input the step received
+- The return value or export
+- Any `console.log` output
+- Error details if the step failed
+
+<Tip>Click **Copy Path** next to any value in the Inspector to copy the dot-notation reference for use in a downstream step.</Tip>
+
+## Replaying events
+
+You can replay a past event against the current version of your workflow. This is useful when you fix a bug and want to reprocess an event that previously failed.
+
+In the Inspector, select an execution and click **Replay**. Pipedream runs the workflow with the original event data.
+
+## Version history
+
+Pipedream saves a version every time you deploy. To view and restore previous versions:
+
+1. Click **...** (more options) in the workflow editor toolbar.
+2. Select **Version history**.
+3. Click any version to preview it.
+4. Click **Restore** to roll back to that version.
+
+<Note>Restoring a version creates a new deployment. Your execution history is preserved across versions.</Note>
+
+## Sharing workflows
+
+You can make a workflow public to share it with others. A public workflow is viewable by anyone with the link; they can copy it to their own account and customize it.
+
+To share a workflow:
+
+1. Open the workflow editor.
+2. Click **Share** in the top-right corner.
+3. Toggle **Make public** and copy the link.
+
+Workflow templates work the same way — a shared workflow is effectively a template that anyone can clone.
+
+## Organizing workflows with projects
+
+Projects let you group related workflows together. Use them to separate concerns: one project per product feature, client, or team.
+
+To create a project:
+
+1. Go to the [Pipedream dashboard](https://pipedream.com).
+2. Click **New Project** in the left sidebar.
+3. Give it a name and click **Create**.
+
+To move an existing workflow into a project:
+
+1. Open the workflow.
+2. Click **...** → **Move to project**.
+3. Select the destination project.
+
+All members of your workspace can see workflows in shared projects.
+
+## Environment variables
+
+Store secrets and configuration values as environment variables so you don't hardcode them in workflow code.
+
+To add an environment variable:
+
+1. Go to **Settings** → **Environment Variables** in the Pipedream dashboard.
+2. Click **Add Variable**.
+3. Enter a name (e.g., `OPENAI_API_KEY`) and a value.
+4. Click **Save**.
+
+Reference the variable in any code step:
+
+```javascript
+export default defineComponent({
+  async run({ steps, $ }) {
+    const apiKey = process.env.OPENAI_API_KEY;
+    // use apiKey in your API call
+  },
+});
+```
+
+You can also reference environment variables in the HTTP action's header fields using the template syntax:
+
+```
+{{ process.env["OPENAI_API_KEY"] }}
+```
+
+<Warning>Environment variables are scoped to your workspace. All workflows in the workspace share the same variable store. Do not commit sensitive values to version control.</Warning>
+
+## Concurrency and rate limiting
+
+By default, Pipedream runs workflow executions concurrently. If your workflow calls a rate-limited API, you can throttle execution:
+
+1. Open the workflow.
+2. Click **Settings** → **Concurrency & Rate Limiting**.
+3. Set the **Maximum concurrent events** or a **Per-second rate limit**.
+
+This is especially useful when your workflow calls third-party APIs with strict rate limits, like OpenAI or Stripe.
+
+## Deleting a workflow
+
+To permanently delete a workflow:
+
+1. Open the workflow.
+2. Click **...** → **Delete workflow**.
+3. Confirm the deletion.
+
+Deleted workflows and their execution history cannot be recovered.

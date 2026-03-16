@@ -1,0 +1,208 @@
+---
+title: "Connect accounts"
+description: "API endpoints for listing, retrieving, and deleting connected accounts in a Pipedream Connect project."
+---
+
+Connected accounts represent an end user's authorized connection to a third-party app — for example, a user's connected Slack or GitHub account. Use these endpoints to manage accounts across your entire project.
+
+## List accounts
+
+```
+GET /v1/connect/{project_id}/accounts
+```
+
+Returns all connected accounts in a project.
+
+### Request
+
+```bash
+curl https://api.pipedream.com/v1/connect/<project_id>/accounts \
+  -H "Authorization: Bearer <access_token>"
+```
+
+### Path parameters
+
+<ParamField path="project_id" type="string" required>
+  Your Pipedream project ID.
+</ParamField>
+
+### Query parameters
+
+<ParamField query="app" type="string">
+  Filter accounts by app name slug (for example, `github` or `slack`).
+</ParamField>
+
+<ParamField query="external_user_id" type="string">
+  Filter accounts by external user ID.
+</ParamField>
+
+<ParamField query="include_credentials" type="boolean">
+  When `true`, the response includes account credentials. Defaults to `false`.
+</ParamField>
+
+<ParamField query="limit" type="integer">
+  Maximum number of accounts to return.
+</ParamField>
+
+<ParamField query="after" type="string">
+  Pagination cursor.
+</ParamField>
+
+### Response
+
+```json
+{
+  "data": [
+    {
+      "id": "apn_abc123",
+      "name": "Jane's GitHub",
+      "external_id": "user-123",
+      "healthy": true,
+      "dead": false,
+      "created_at": "2024-01-15T10:30:00.000Z",
+      "updated_at": "2024-03-01T08:15:00.000Z",
+      "app": {
+        "id": "app_github",
+        "name": "GitHub",
+        "name_slug": "github",
+        "auth_type": "oauth"
+      }
+    }
+  ],
+  "page_info": {
+    "total_count": 12,
+    "count": 10,
+    "start_cursor": "apn_abc123",
+    "end_cursor": "apn_xyz789"
+  }
+}
+```
+
+---
+
+## Get an account
+
+```
+GET /v1/connect/{project_id}/accounts/{account_id}
+```
+
+Returns the details of a specific connected account.
+
+### Request
+
+```bash
+curl https://api.pipedream.com/v1/connect/<project_id>/accounts/apn_abc123 \
+  -H "Authorization: Bearer <access_token>"
+```
+
+### Path parameters
+
+<ParamField path="project_id" type="string" required>
+  Your Pipedream project ID.
+</ParamField>
+
+<ParamField path="account_id" type="string" required>
+  The account ID, prefixed with `apn_`.
+</ParamField>
+
+### Query parameters
+
+<ParamField query="include_credentials" type="boolean">
+  When `true`, the response includes account credentials such as OAuth tokens or API keys.
+</ParamField>
+
+### Response
+
+```json
+{
+  "id": "apn_abc123",
+  "name": "Jane's GitHub",
+  "external_id": "user-123",
+  "healthy": true,
+  "dead": false,
+  "created_at": "2024-01-15T10:30:00.000Z",
+  "updated_at": "2024-03-01T08:15:00.000Z",
+  "app": {
+    "id": "app_github",
+    "name": "GitHub",
+    "name_slug": "github",
+    "auth_type": "oauth"
+  }
+}
+```
+
+<ResponseField name="id" type="string">
+  Unique account ID, prefixed with `apn_`.
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  Display name of the connected account.
+</ResponseField>
+
+<ResponseField name="external_id" type="string">
+  The external user ID from your system that owns this account.
+</ResponseField>
+
+<ResponseField name="healthy" type="boolean">
+  Whether the account is healthy. Pipedream periodically retries token refresh and test requests for unhealthy accounts.
+</ResponseField>
+
+<ResponseField name="dead" type="boolean">
+  Whether the account is no longer active. Dead accounts cannot be used to make API requests.
+</ResponseField>
+
+<ResponseField name="app" type="object">
+  Metadata about the connected app.
+</ResponseField>
+
+<ResponseField name="app.name_slug" type="string">
+  The app's name slug, used in component props and API calls.
+</ResponseField>
+
+<ResponseField name="app.auth_type" type="string">
+  Authentication type: `oauth`, `keys`, or `none`.
+</ResponseField>
+
+<ResponseField name="created_at" type="string">
+  ISO 8601 timestamp when the account was created.
+</ResponseField>
+
+<ResponseField name="credentials" type="object">
+  Account credentials (only present when `include_credentials=true`). Contents vary by app and auth type.
+</ResponseField>
+
+---
+
+## Delete an account
+
+```
+DELETE /v1/connect/{project_id}/accounts/{account_id}
+```
+
+Permanently deletes a connected account. This revokes the stored credentials and removes the account from the project.
+
+### Request
+
+```bash
+curl -X DELETE \
+  https://api.pipedream.com/v1/connect/<project_id>/accounts/apn_abc123 \
+  -H "Authorization: Bearer <access_token>"
+```
+
+### Path parameters
+
+<ParamField path="project_id" type="string" required>
+  Your Pipedream project ID.
+</ParamField>
+
+<ParamField path="account_id" type="string" required>
+  The account ID to delete.
+</ParamField>
+
+### Response
+
+Returns `200 OK` with no body on success.
+
+<Warning>
+Deleting an account is irreversible. Any workflows or deployed triggers that rely on the account will stop working.
+</Warning>

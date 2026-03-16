@@ -1,0 +1,60 @@
+---
+title: "Pipedream Connect overview"
+description: "Embed OAuth and API integrations directly into your own product using Pipedream's SDK."
+---
+
+Pipedream Connect lets you add Pipedream's 1,000+ app integrations to your own application. Your users connect their accounts through your UI, and you run actions on their behalf — without building or maintaining any OAuth infrastructure.
+
+## What you can do
+
+- Let your users connect their Slack, GitHub, Google, Stripe, or any other supported account
+- Run Pipedream actions on behalf of your users using their connected credentials
+- List, manage, and delete connected accounts via the SDK or API
+- Proxy authenticated API requests to any connected app
+
+## How it works
+
+1. Your backend creates a short-lived **connect token** scoped to one of your users
+2. Your frontend passes the token to the Pipedream Connect UI
+3. The user completes the OAuth or API key flow inside the Connect UI
+4. Pipedream stores the credentials encrypted and associates them with that user
+5. Your backend calls SDK methods to run actions or retrieve account info on behalf of the user
+
+## Key components
+
+<CardGroup cols={2}>
+  <Card title="Backend SDK" icon="server" href="/connect/quickstart">
+    Server-side client for creating connect tokens, managing accounts, and running actions. Install with `npm install @pipedream/sdk`.
+  </Card>
+  <Card title="Browser SDK" icon="browser" href="https://pipedream.com/docs/connect/">
+    Client-side SDK (`@pipedream/sdk/browser`) for initiating the Connect flow from your frontend.
+  </Card>
+  <Card title="connect-react" icon="react" href="https://pipedream.com/docs/connect/">
+    React components (`@pipedream/connect-react`) that wrap the browser SDK with ready-to-use UI.
+  </Card>
+  <Card title="Quickstart" icon="rocket" href="/connect/quickstart">
+    Get your first connected account working in minutes.
+  </Card>
+</CardGroup>
+
+## Authentication
+
+You authenticate your backend using an **OAuth client** scoped to a Pipedream project:
+
+- Create a project at [pipedream.com/projects](https://pipedream.com/projects)
+- Create an OAuth client in **Project settings**
+- Use the client ID and secret to initialize the backend SDK
+
+Connect tokens are short-lived and scoped to a single external user ID in your system. Your users never see your OAuth credentials.
+
+## Security
+
+- All credentials are stored encrypted at rest
+- Pipedream is SOC 2 Type 2 compliant
+- Connect tokens expire and cannot be reused
+- OAuth tokens are refreshed automatically; your application never handles raw refresh tokens
+- You control which origins can use connect tokens via `allowed_origins`
+
+## Pricing
+
+Pipedream Connect is available on paid plans. See [pipedream.com/pricing](https://pipedream.com/pricing) for details.

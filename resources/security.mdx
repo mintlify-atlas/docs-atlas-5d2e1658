@@ -1,0 +1,58 @@
+---
+title: "Security"
+description: "An overview of Pipedream's security practices, compliance, and how to report vulnerabilities."
+---
+
+Pipedream takes security seriously. This page describes how the platform protects your data and credentials, and how to report security issues.
+
+## Compliance
+
+Pipedream has demonstrated **SOC 2 Type 2** compliance. You can request a copy of the SOC 2 Type 2 report by emailing [support@pipedream.com](mailto:support@pipedream.com).
+
+## Credential storage
+
+Pipedream never stores credentials in plaintext.
+
+- **OAuth tokens** — When you connect an app via OAuth, Pipedream stores the access and refresh tokens encrypted at rest. Tokens are only decrypted at execution time and are never exposed in logs or workflow code.
+- **API keys and secrets** — Credentials added through Pipedream's connected accounts are stored encrypted and scoped to your account.
+- **Environment variables** — Use environment variables to store secrets like API keys. Values are encrypted at rest and injected into workflow steps at runtime. They are never displayed in step outputs or logs.
+
+## Environment variables
+
+Store sensitive values as environment variables instead of hardcoding them in workflow steps.
+
+1. Go to **Settings → Environment Variables**
+2. Add a key-value pair
+3. Reference it in any code step with `process.env.YOUR_KEY` (Node.js) or `os.environ['YOUR_KEY']` (Python)
+
+<Warning>
+  Never hardcode API keys, passwords, or tokens directly in workflow code. Use environment variables or connected accounts instead.
+</Warning>
+
+## Network security
+
+- All traffic between your browser and Pipedream is encrypted over HTTPS/TLS
+- Webhook payloads are delivered over HTTPS
+- Pipedream does not log request or response bodies unless you explicitly export them in a workflow step
+
+## OAuth token management
+
+When you connect a third-party app:
+
+- Pipedream requests only the scopes necessary for the integration
+- You can revoke access at any time from **Settings → Connected Accounts**
+- Revoking a connection in Pipedream does not automatically revoke the token at the third-party provider — you should do that separately if needed
+
+## Privacy policy
+
+For full details on data handling and privacy, see the [Pipedream Privacy Policy](https://pipedream.com/privacy).
+
+## Reporting a vulnerability
+
+If you discover a suspected vulnerability or security issue, please contact the security team directly:
+
+**Email:** [security@pipedream.com](mailto:security@pipedream.com)
+
+Please do not report security vulnerabilities through public GitHub issues. The team will respond and work with you to address the issue.
+
+For more details on the vulnerability disclosure process, see the [privacy and security docs](https://pipedream.com/docs/privacy-and-security/#reporting-a-vulnerability).

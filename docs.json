@@ -1,122 +1,203 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "mint",
-  "name": "Mint Starter Kit",
+  "name": "Pipedream",
+  "theme": "palm",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#35d38c",
+    "light": "#94eccc",
+    "dark": "#6b6f72"
   },
   "favicon": "/favicon.svg",
+  "logo": {
+    "light": "https://media.brand.dev/dcf7c060-1892-4321-aab1-9f761c2c5d44.png",
+    "dark": "https://media.brand.dev/dcf7c060-1892-4321-aab1-9f761c2c5d44.png"
+  },
+  "navbar": {
+    "primary": {
+      "type": "github",
+      "href": "https://github.com/PipedreamHQ/pipedream"
+    }
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/PipedreamHQ/pipedream",
+      "twitter": "https://twitter.com/pipedream"
+    }
+  },
   "navigation": {
     "tabs": [
       {
-        "tab": "Guides",
+        "tab": "Documentation",
         "groups": [
           {
-            "group": "Getting started",
+            "group": "Get Started",
             "pages": [
-              "index",
+              "introduction",
               "quickstart",
-              "development"
+              "key-concepts"
             ]
           },
           {
-            "group": "Customization",
+            "group": "Workflows",
             "pages": [
-              "essentials/settings",
-              "essentials/navigation"
+              "workflows/overview",
+              "workflows/steps",
+              "workflows/triggers",
+              "workflows/managing-workflows"
             ]
           },
           {
-            "group": "Writing content",
+            "group": "Event Sources",
             "pages": [
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/reusable-snippets"
+              "sources/overview",
+              "sources/building-sources",
+              "sources/consuming-events"
             ]
           },
           {
-            "group": "AI tools",
+            "group": "Actions",
             "pages": [
-              "ai-tools/cursor",
-              "ai-tools/claude-code",
-              "ai-tools/windsurf"
+              "actions/overview",
+              "actions/using-actions",
+              "actions/building-actions"
+            ]
+          },
+          {
+            "group": "Custom Code",
+            "pages": [
+              "code/overview",
+              "code/nodejs",
+              "code/python",
+              "code/golang",
+              "code/bash"
+            ]
+          },
+          {
+            "group": "Destinations",
+            "pages": [
+              "destinations/overview",
+              "destinations/s3",
+              "destinations/http",
+              "destinations/email"
+            ]
+          },
+          {
+            "group": "Integrations",
+            "pages": [
+              "integrations/overview",
+              "integrations/apps"
             ]
           }
         ]
       },
       {
-        "tab": "API reference",
+        "tab": "Connect",
         "groups": [
           {
-            "group": "API documentation",
+            "group": "Overview",
             "pages": [
-              "api-reference/introduction"
+              "connect/overview",
+              "connect/quickstart"
             ]
           },
           {
-            "group": "Endpoint examples",
+            "group": "SDK",
             "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
+              "connect/sdk/installation",
+              "connect/sdk/server-client",
+              "connect/sdk/browser-client",
+              "connect/sdk/connect-react"
+            ]
+          },
+          {
+            "group": "MCP Server",
+            "pages": [
+              "connect/mcp/overview",
+              "connect/mcp/getting-started",
+              "connect/mcp/self-hosting"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Components",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "components/overview",
+              "components/quickstart"
+            ]
+          },
+          {
+            "group": "Building Components",
+            "pages": [
+              "components/building/sources",
+              "components/building/actions",
+              "components/building/props",
+              "components/building/auth"
+            ]
+          },
+          {
+            "group": "Publishing",
+            "pages": [
+              "components/publishing/guidelines",
+              "components/publishing/contributing"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "api/overview",
+              "api/authentication"
+            ]
+          },
+          {
+            "group": "REST API",
+            "pages": [
+              "api/rest/workflows",
+              "api/rest/sources",
+              "api/rest/accounts",
+              "api/rest/users"
+            ]
+          },
+          {
+            "group": "Pipedream Connect API",
+            "pages": [
+              "api/connect/tokens",
+              "api/connect/accounts",
+              "api/connect/external-users"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Resources",
+        "groups": [
+          {
+            "group": "Platform",
+            "pages": [
+              "resources/pricing",
+              "resources/limits",
+              "resources/security",
+              "resources/changelog"
+            ]
+          },
+          {
+            "group": "Community",
+            "pages": [
+              "resources/contributing",
+              "resources/support",
+              "resources/faq"
             ]
           }
         ]
       }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
-        }
-      ]
-    }
-  },
-  "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
-  },
-  "navbar": {
-    "links": [
-      {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
-      }
-    ],
-    "primary": {
-      "type": "button",
-      "label": "Dashboard",
-      "href": "https://dashboard.mintlify.com"
-    }
-  },
-  "contextual": {
-    "options": [
-     "copy",
-     "view",
-     "chatgpt",
-     "claude",
-     "perplexity",
-     "mcp",
-     "cursor",
-     "vscode"
-   ]
-  },
-  "footer": {
-    "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
-    }
+    ]
   }
 }

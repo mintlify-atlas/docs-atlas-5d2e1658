@@ -1,0 +1,194 @@
+---
+title: "Connect quickstart"
+description: "Set up Pipedream Connect and let your users connect their first account in minutes."
+---
+
+This guide walks you through the minimum steps to get Pipedream Connect running in your application.
+
+<Steps>
+  <Step title="Create a Pipedream project">
+    Sign up at [pipedream.com](https://pipedream.com) if you haven't already, then create a new project at [pipedream.com/projects](https://pipedream.com/projects).
+
+    After creating the project, copy its **Project ID** from the project settings page — you'll need it in the next steps.
+  </Step>
+
+  <Step title="Create an OAuth client">
+    In your project, go to **Settings > OAuth clients** and click **Create OAuth client**.
+
+    Copy the **Client ID** and **Client Secret**. Store the secret securely — treat it like a password and never expose it to the browser.
+  </Step>
+
+  <Step title="Install the SDK">
+    Install the Pipedream SDK in your server-side project:
+
+    ```bash
+    npm install @pipedream/sdk
+    ```
+  </Step>
+
+  <Step title="Set environment variables">
+    Add the following environment variables to your server:
+
+    ```bash
+    PIPEDREAM_CLIENT_ID=your_oauth_client_id
+    PIPEDREAM_CLIENT_SECRET=your_oauth_client_secret
+    PIPEDREAM_PROJECT_ID=your_project_id
+    ```
+
+    <Warning>
+      Never expose `PIPEDREAM_CLIENT_SECRET` to the browser or commit it to version control.
+    </Warning>
+  </Step>
+
+  <Step title="Create a backend client">
+    Import `createBackendClient` from the server entry point and initialize it with your credentials:
+
+    ```typescript
+    import { createBackendClient } from "@pipedream/sdk/server";
+
+    const client = createBackendClient({
+      environment: "development",
+      projectId: process.env.PIPEDREAM_PROJECT_ID,
+      credentials: {
+        clientId: process.env.PIPEDREAM_CLIENT_ID,
+        clientSecret: process.env.PIPEDREAM_CLIENT_SECRET,
+      },
+    });
+    ```
+
+    Set `environment` to `"production"` when you deploy.
+  </Step>
+
+  <Step title="Create a connect token">
+    When a user in your app wants to connect an account, create a short-lived connect token on your server:
+
+    ```typescript
+    const tokenResponse = await client.createConnectToken({
+      external_user_id: "user_123", // your internal user ID
+    });
+
+    const { token } = tokenResponse;
+    ```
+
+    The `external_user_id` is any stable identifier from your system (a database ID, UUID, etc.). Pipedream uses it to associate connected accounts with your users.
+
+    You can also configure redirect URIs and a webhook for connection events:
+
+    ```typescript
+    const tokenResponse = await client.createConnectToken({
+      external_user_id: "user_123",
+      success_redirect_uri: "https://yourapp.com/connected",
+      error_redirect_uri: "https://yourapp.com/connect-error",
+      webhook_uri: "https://yourapp.com/api/pipedream-webhook",
+      allowed_origins: ["https://yourapp.com"],
+    });
+    ```
+  </Step>
+
+  <Step title="Connect an account in your frontend">
+    Pass the token to the Pipedream browser SDK or React components to open the Connect UI:
+
+    <Tabs>
+      <Tab title="React">
+        Install the React package:
+
+        ```bash
+        npm install @pipedream/connect-react @pipedream/sdk
+        ```
+
+        Use the `FrontendClientProvider` and `ConnectButton` components:
+
+        ```typescript
+        "use client";
+        import { createFrontendClient } from "@pipedream/sdk/browser";
+        import { FrontendClientProvider, ConnectButton } from "@pipedream/connect-react";
+        import { fetchToken } from "./actions"; // your server action that calls createConnectToken
+
+        export default function Page() {
+          const userId = "user_123";
+          const client = createFrontendClient({
+            externalUserId: userId,
+            tokenCallback: fetchToken,
+          });
+
+          return (
+            <FrontendClientProvider client={client}>
+              <ConnectButton
+                app="github"
+                userId={userId}
+                onSuccess={(account) => console.log("Connected:", account.id)}
+              />
+            </FrontendClientProvider>
+          );
+        }
+        ```
+      </Tab>
+      <Tab title="Browser SDK">
+        Install the SDK:
+
+        ```bash
+        npm install @pipedream/sdk
+        ```
+
+        Use the browser client to initiate the connect flow:
+
+        ```typescript
+        import { createFrontendClient } from "@pipedream/sdk/browser";
+
+        const client = createFrontendClient({
+          externalUserId: "user_123",
+          tokenCallback: async ({ externalUserId }) => {
+            // Fetch the token from your server
+            const res = await fetch("/api/connect-token", {
+              method: "POST",
+              body: JSON.stringify({ externalUserId }),
+            });
+            return res.json();
+          },
+        });
+
+        await client.connectAccount({ app: "github" });
+        ```
+      </Tab>
+    </Tabs>
+  </Step>
+
+  <Step title="Use the connected account">
+    Once a user has connected an account, retrieve it from your backend and run actions:
+
+    ```typescript
+    // List all connected accounts for a user
+    const accounts = await client.getAccounts({
+      external_user_id: "user_123",
+    });
+
+    // Run a Pipedream action using the connected account
+    const result = await client.runAction({
+      actionId: "github-create-issue",
+      externalUserId: "user_123",
+      inputs: {
+        owner: "my-org",
+        repo: "my-repo",
+        title: "Bug report from user",
+      },
+    });
+    ```
+  </Step>
+</Steps>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Connect overview" icon="map" href="/connect/overview">
+    Understand the full Connect architecture and security model.
+  </Card>
+  <Card title="SDK reference" icon="code" href="https://pipedream.com/docs/connect/">
+    Full reference for all backend and browser SDK methods.
+  </Card>
+  <Card title="Example app" icon="github" href="https://github.com/PipedreamHQ/pipedream-connect-examples/">
+    Clone a working example app to get started faster.
+  </Card>
+  <Card title="Browse apps" icon="grid-2" href="https://pipedream.com/apps">
+    See all 1,000+ apps your users can connect.
+  </Card>
+</CardGroup>

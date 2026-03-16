@@ -1,0 +1,60 @@
+---
+title: "Actions"
+description: "Actions are pre-built code steps that perform common operations across Pipedream's 1,000+ API integrations."
+---
+
+## What is an action?
+
+An action is a reusable workflow step that performs a specific operation — sending a Slack message, adding a row to Google Sheets, creating a GitHub issue, and so on. Actions handle authentication, API calls, and error handling for you.
+
+You add actions to workflows as steps. Each action runs in sequence after the previous step and can read data from any upstream step.
+
+## How actions differ from sources
+
+| | Sources | Actions |
+|---|---|---|
+| **Purpose** | Trigger workflows by watching for new data | Execute operations inside a running workflow |
+| **Position** | Always the first step (trigger) | Any step after the trigger |
+| **Runs** | When an external event occurs | When the workflow reaches that step |
+
+## 1,000+ pre-built integrations
+
+Pipedream maintains pre-built actions for over 1,000 apps. These actions are open source and live in the [`components` directory](https://github.com/PipedreamHQ/pipedream/tree/master/components) of the Pipedream GitHub repository.
+
+Popular action categories include:
+
+<CardGroup cols={2}>
+  <Card title="Communication" icon="message">
+    Slack, Discord, Microsoft Teams, Gmail, Twilio, SendGrid
+  </Card>
+  <Card title="Productivity" icon="calendar">
+    Google Sheets, Notion, Airtable, Trello, Asana, Linear
+  </Card>
+  <Card title="Developer tools" icon="code">
+    GitHub, GitLab, Jira, PagerDuty, Datadog
+  </Card>
+  <Card title="Data & storage" icon="database">
+    PostgreSQL, MySQL, MongoDB, Redis, AWS S3, Snowflake
+  </Card>
+</CardGroup>
+
+## Finding actions
+
+When building a workflow, click the **+** button to add a step, then search for an app by name. Pipedream shows all available actions for that app.
+
+You can also browse available apps at [pipedream.com/apps](https://pipedream.com/apps).
+
+## Custom actions
+
+When a pre-built action doesn’t exist for your use case, you can build your own. Custom actions use the same `defineComponent()` structure as pre-built actions and can be reused across workflows or published to the Pipedream community.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Using actions" icon="play" href="/actions/using-actions">
+    Learn how to add pre-built actions to a workflow and configure them.
+  </Card>
+  <Card title="Building actions" icon="hammer" href="/actions/building-actions">
+    Learn how to build a custom action with defineComponent().
+  </Card>
+</CardGroup>

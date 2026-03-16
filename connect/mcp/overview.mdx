@@ -1,0 +1,72 @@
+---
+title: "MCP server overview"
+description: "Access 2,800+ APIs as MCP tools through Pipedream's hosted Model Context Protocol server."
+---
+
+Pipedream's MCP server implements the [Model Context Protocol](https://modelcontextprotocol.io), exposing the full Pipedream app and component registry as callable tools. Any MCP client — Claude Desktop, Cursor, your own AI agent — can use it to interact with thousands of APIs without writing integration code.
+
+## What it provides
+
+<CardGroup cols={2}>
+  <Card title="2,800+ APIs" icon="plug">
+    Every app in the Pipedream registry is available as a tool set, from Slack and GitHub to Salesforce and Stripe.
+  </Card>
+  <Card title="10,000+ tools" icon="wrench">
+    Each app exposes pre-built actions and triggers as individual MCP tools, ready to call.
+  </Card>
+  <Card title="Fully managed auth" icon="lock">
+    Pipedream handles OAuth flows, token refresh, and credential storage. No token management in your code.
+  </Card>
+  <Card title="Per-user isolation" icon="users">
+    Each route is scoped to an external user ID, so every user's credentials and calls are isolated.
+  </Card>
+</CardGroup>
+
+## Two server modes
+
+### App-specific: `/{external_user_id}/{app}`
+
+Exposes all tools for a single app. Use this when you know which app the user will interact with.
+
+```
+https://mcp.pipedream.com/{external_user_id}/slack
+https://mcp.pipedream.com/{external_user_id}/github
+https://mcp.pipedream.com/{external_user_id}/google_sheets
+```
+
+### Dynamic: `/{external_user_id}`
+
+Exposes tools for all of the user's connected apps and supports on-the-fly app discovery. Use this when you want to give users access to any app they've connected.
+
+```
+https://mcp.pipedream.com/{external_user_id}
+```
+
+<Note>
+  The dynamic endpoint is experimental and relies on the MCP client's ability to update its tool list at runtime.
+</Note>
+
+## Hosted vs. self-hosted
+
+| | Hosted (recommended) | Self-hosted |
+|---|---|---|
+| URL | `mcp.pipedream.com` | Your own server |
+| Maintenance | Managed by Pipedream | You manage it |
+| Reliability | Enterprise-grade | Depends on your infra |
+| Updates | Automatic | Manual |
+| Use case | Production apps | Reference / custom builds |
+
+For production use, always use the hosted server at `mcp.pipedream.com`. The [self-hosted reference implementation](/connect/mcp/self-hosting) is provided for exploration and custom scenarios.
+
+## How authentication works
+
+The MCP server uses Pipedream Connect under the hood. When a user connects an app for the first time, the server presents an OAuth or API key flow. After the user completes it, credentials are stored securely in Pipedream and reused automatically for every subsequent tool call.
+
+You need a Pipedream project and OAuth client credentials to run the server. See [Getting started](/connect/mcp/getting-started) for setup instructions.
+
+## Use cases
+
+- **AI coding assistants** — Let Cursor or Claude create GitHub issues, send Slack messages, or query a database using natural language.
+- **Chatbots** — Give your LLM-powered assistant access to your users' SaaS tools.
+- **Automation agents** — Build agents that can take action across hundreds of APIs without custom integrations.
+- **Internal tools** — Expose company-specific API actions to an internal AI assistant.

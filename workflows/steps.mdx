@@ -1,0 +1,218 @@
+---
+title: "Steps"
+description: "Workflows are made of steps. Learn about trigger steps, pre-built action steps, and custom code steps — and how to pass data between them."
+---
+
+Every workflow is a sequence of steps. The first step is always a trigger; everything after it is either a pre-built action or a code step.
+
+## Step types
+
+<CardGroup cols={3}>
+  <Card title="Triggers" icon="bolt" href="/workflows/triggers">
+    Start a workflow from an HTTP request, a schedule, or an app event
+  </Card>
+  <Card title="Actions" icon="play" href="/actions/overview">
+    Pre-built steps for common tasks across 1,000+ apps
+  </Card>
+  <Card title="Code steps" icon="code" href="/code/overview">
+    Custom logic in Node.js, Python, Go, or Bash
+  </Card>
+</CardGroup>
+
+## Trigger step
+
+The trigger is the first step in every workflow. It defines the event that starts execution. Pipedream passes the full event to subsequent steps through the `steps.trigger.event` object.
+
+For an HTTP trigger, `steps.trigger.event` contains:
+
+```json
+{
+  "method": "POST",
+  "path": "/",
+  "query": {},
+  "headers": { "content-type": "application/json" },
+  "body": { "user_id": 42, "action": "signup" },
+  "url": "https://eo1a2b3c4d.m.pipedream.net"
+}
+```
+
+For a timer trigger, `steps.trigger.event` contains the scheduled timestamp and interval metadata.
+
+## Action steps
+
+Actions are pre-built steps from Pipedream's component registry. To add one, click **+** in the workflow editor, search by app name or action name, and select it. Pipedream renders a form for each of the action's props — fill in the fields and click **Test**.
+
+No code is required. Actions handle authentication, API calls, and error handling for you.
+
+<Tip>You can create your own reusable actions and publish them to the Pipedream registry for anyone to use. See [building actions](/actions/building-actions).</Tip>
+
+## Code steps
+
+Code steps let you write arbitrary logic in the language of your choice. Use them when pre-built actions don't cover your use case.
+
+### Basic structure
+
+A code step exports a default `defineComponent` call:
+
+```javascript
+export default defineComponent({
+  async run({ steps, $ }) {
+    const data = steps.trigger.event.body;
+    return data;
+  },
+});
+```
+
+The `run` function receives two arguments:
+
+| Argument | Description |
+|----------|-------------|
+| `steps` | An object containing the event and each previous step's exported data |
+| `$` | Helper methods: `$.flow.exit()`, `$send`, and more |
+
+### Reading data from previous steps
+
+Use `steps.<step_name>.$return_value` to access the return value of any previous step:
+
+```javascript
+export default defineComponent({
+  async run({ steps, $ }) {
+    // Read from the trigger
+    const userId = steps.trigger.event.body.user_id;
+
+    // Read from a step named "fetch_user"
+    const user = steps.fetch_user.$return_value;
+
+    return {
+      id: userId,
+      name: user.name,
+      email: user.email,
+    };
+  },
+});
+```
+
+<Note>Step names are shown in the workflow editor. You can rename a step by clicking its name. The reference `steps.<step_name>` updates automatically.</Note>
+
+### Using npm packages
+
+Import any npm package directly in your code. Pipedream installs it automatically:
+
+```javascript
+import axios from "axios";
+import { format } from "date-fns";
+
+export default defineComponent({
+  async run({ steps, $ }) {
+    const response = await axios.get("https://api.example.com/data");
+    const formatted = format(new Date(), "yyyy-MM-dd");
+    return { data: response.data, date: formatted };
+  },
+});
+```
+
+### Using props in code steps
+
+Props let you define configurable inputs that appear as form fields in the editor:
+
+```javascript
+export default defineComponent({
+  props: {
+    greeting: {
+      type: "string",
+      label: "Greeting",
+      default: "Hello",
+    },
+    times: {
+      type: "integer",
+      label: "Repeat",
+      default: 1,
+    },
+  },
+  async run({ steps, $ }) {
+    const messages = Array.from(
+      { length: this.times },
+      () => `${this.greeting}, world!`
+    );
+    return messages;
+  },
+});
+```
+
+### Connecting to an app
+
+Use an `app` prop to connect a Pipedream-managed account:
+
+```javascript
+import { WebClient } from "@slack/web-api";
+
+export default defineComponent({
+  props: {
+    slack: {
+      type: "app",
+      app: "slack",
+    },
+  },
+  async run({ steps, $ }) {
+    const web = new WebClient(this.slack.$auth.oauth_access_token);
+    return await web.chat.postMessage({
+      channel: "#general",
+      text: steps.trigger.event.body.message,
+    });
+  },
+});
+```
+
+## Passing data between steps
+
+The return value of a step is available to all downstream steps. Pipedream serializes the value to JSON, so return plain objects, arrays, strings, or numbers.
+
+```javascript
+// Step 1: named "parse_request"
+export default defineComponent({
+  async run({ steps, $ }) {
+    return {
+      userId: steps.trigger.event.body.user_id,
+      timestamp: Date.now(),
+    };
+  },
+});
+
+// Step 2: reads from Step 1
+export default defineComponent({
+  async run({ steps, $ }) {
+    const { userId, timestamp } = steps.parse_request.$return_value;
+    return `User ${userId} was processed at ${timestamp}`;
+  },
+});
+```
+
+## Other languages
+
+<Tabs>
+  <Tab title="Python">
+    ```python
+    def handler(pd: "pipedream"):
+        body = pd.steps["trigger"]["event"]["body"]
+        return {"user_id": body["user_id"]}
+    ```
+  </Tab>
+  <Tab title="Go">
+    ```go
+    import (
+      "fmt"
+      pd "github.com/PipedreamHQ/pipedream-go"
+    )
+
+    func main(pd pd.InOut) {
+      body := pd.Steps["trigger"].(map[string]interface{})["event"]
+      fmt.Println(body)
+    }
+    ```
+  </Tab>
+  <Tab title="Bash">
+    ```bash
+    echo $PIPEDREAM_STEPS | jq '.trigger.event.body'
+    ```
+  </Tab>
+</Tabs>

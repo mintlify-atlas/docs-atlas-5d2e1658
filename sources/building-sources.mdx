@@ -1,0 +1,191 @@
+---
+title: "Building sources"
+description: "Build a custom event source that watches for new data and emits events to your workflows."
+---
+
+## Component structure
+
+Every source is a JavaScript module that exports a component object with the following fields:
+
+```javascript
+export default {
+  name: "My Source",        // Display name
+  key: "my-source",         // Unique identifier (required for publishing)
+  description: "...",       // Short description
+  version: "0.0.1",         // Semver version
+  type: "source",           // Must be "source"
+  props: {},                // Inputs and interface declarations
+  async run(event) {},      // Called when the source fires
+};
+```
+
+## HTTP sources
+
+Use `$.interface.http` to expose an HTTPS endpoint. Pipedream provisions the URL when you deploy the source.
+
+```javascript
+export default {
+  name: "My HTTP Source",
+  key: "my-http-source",
+  version: "0.0.1",
+  type: "source",
+  props: {
+    http: {
+      type: "$.interface.http",
+      customResponse: true, // lets you send a custom HTTP response
+    },
+  },
+  async run(event) {
+    // event contains: method, path, headers, query, body
+    this.http.respond({
+      status: 200,
+      body: { received: true },
+      headers: { "content-type": "application/json" },
+    });
+
+    this.$emit(event, {
+      summary: `${event.method} ${event.path}`,
+    });
+  },
+};
+```
+
+The `run` method receives the full HTTP request object with these properties:
+
+| Property | Type | Description |
+|---|---|---|
+| `method` | string | HTTP method (`GET`, `POST`, etc.) |
+| `path` | string | Request path |
+| `headers` | object | Request headers |
+| `query` | object | Query string parameters |
+| `body` | any | Request body, parsed if JSON |
+
+## Timer sources
+
+Use `$.interface.timer` to run the source on a schedule. The `intervalSeconds` field sets how often the source runs.
+
+```javascript
+import { DEFAULT_POLLING_SOURCE_TIMER_INTERVAL } from "@pipedream/platform";
+
+export default {
+  name: "My Timer Source",
+  key: "my-timer-source",
+  version: "0.0.1",
+  type: "source",
+  props: {
+    timer: {
+      type: "$.interface.timer",
+      default: {
+        intervalSeconds: DEFAULT_POLLING_SOURCE_TIMER_INTERVAL, // 15 minutes
+      },
+    },
+  },
+  async run() {
+    // Fetch data from an API and emit new items
+    const response = await fetch("https://api.example.com/items");
+    const items = await response.json();
+
+    for (const item of items) {
+      this.$emit(item, {
+        id: item.id,
+        summary: item.title,
+        ts: Date.parse(item.created_at),
+      });
+    }
+  },
+};
+```
+
+You can also use a cron expression:
+
+```javascript
+timer: {
+  type: "$.interface.timer",
+  default: {
+    cron: "0 9 * * 1-5", // 9am Monday-Friday
+  },
+},
+```
+
+## Storing state with `$.service.db`
+
+Use `$.service.db` to store data between runs. This lets you track which items you've already emitted so you don't emit duplicates.
+
+```javascript
+export default {
+  name: "My Polling Source",
+  key: "my-polling-source",
+  version: "0.0.1",
+  type: "source",
+  props: {
+    timer: {
+      type: "$.interface.timer",
+      default: { intervalSeconds: 900 },
+    },
+    db: "$.service.db",
+  },
+  methods: {
+    getLastId() {
+      return this.db.get("lastId") || 0;
+    },
+    setLastId(id) {
+      this.db.set("lastId", id);
+    },
+  },
+  async run() {
+    const lastId = this.getLastId();
+    const response = await fetch(`https://api.example.com/items?since_id=${lastId}`);
+    const items = await response.json();
+
+    if (!items.length) return;
+
+    for (const item of items) {
+      this.$emit(item, {
+        id: item.id,
+        summary: item.title,
+        ts: Date.parse(item.created_at),
+      });
+    }
+
+    this.setLastId(items[items.length - 1].id);
+  },
+};
+```
+
+`this.db.get(key)` returns the stored value or `undefined`. `this.db.set(key, value)` stores any JSON-serializable value.
+
+## Emitting events with `this.$emit()`
+
+Call `this.$emit(payload, metadata)` to emit an event. The `payload` is the event data available in downstream workflow steps. The metadata controls deduplication and display.
+
+```javascript
+this.$emit(payload, {
+  id: "unique-id",      // Used for deduplication — Pipedream won't emit the same id twice
+  summary: "New item",  // Short description shown in the event inspector
+  ts: Date.now(),       // Timestamp in milliseconds
+});
+```
+
+<Note>
+If you provide an `id`, Pipedream automatically deduplicates events. The source will not emit two events with the same `id`.
+</Note>
+
+## Deploying sources with the CLI
+
+Install the Pipedream CLI and deploy a source file directly:
+
+```bash
+# Install the CLI
+npm install -g @pipedream/sdk
+
+# Deploy a source
+pd deploy my-source.mjs
+
+# List deployed sources
+pd sources ls
+
+# View events from a source
+pd events -n 10 <source-id>
+```
+
+After deploying, you can find your source in the Pipedream UI under **Sources** and link it to a workflow as a trigger.

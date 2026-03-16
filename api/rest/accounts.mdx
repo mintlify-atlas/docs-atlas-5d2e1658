@@ -1,0 +1,75 @@
+---
+title: "Accounts"
+description: "REST API endpoints for looking up connected app information."
+---
+
+Accounts represent connected app integrations — for example, a user's connected GitHub, Slack, or Google account. These endpoints let you look up app metadata.
+
+<Info>
+To manage connected accounts for end users in Pipedream Connect, use the [Connect accounts API](/api/connect/accounts) instead.
+</Info>
+
+## Get app info
+
+```
+GET /v1/apps/{app_name}
+```
+
+Returns metadata about a Pipedream-integrated app, including its authentication type and available fields.
+
+### Request
+
+```bash
+curl https://api.pipedream.com/v1/apps/github \
+  -H "Authorization: Bearer <api_key>"
+```
+
+### Path parameters
+
+<ParamField path="app_name" type="string" required>
+  The app's name slug (for example, `github`, `slack`, `google_sheets`). You can find an app's name slug in the URL on its Pipedream integrations page.
+</ParamField>
+
+### Response
+
+```json
+{
+  "data": {
+    "id": "app_abc123",
+    "name": "GitHub",
+    "name_slug": "github",
+    "description": "Where the world builds software",
+    "auth_type": "oauth",
+    "img_src": "https://assets.pipedream.net/s.v0/app_abc123/logo/orig",
+    "categories": ["Developer Tools", "Source Control"]
+  }
+}
+```
+
+<ResponseField name="data.id" type="string">
+  Unique app ID.
+</ResponseField>
+
+<ResponseField name="data.name" type="string">
+  Human-readable app name.
+</ResponseField>
+
+<ResponseField name="data.name_slug" type="string">
+  The app's identifier slug used in components and API calls.
+</ResponseField>
+
+<ResponseField name="data.description" type="string">
+  Short description of the app.
+</ResponseField>
+
+<ResponseField name="data.auth_type" type="string">
+  Authentication type: `oauth`, `keys`, or `none`.
+</ResponseField>
+
+<ResponseField name="data.img_src" type="string">
+  URL to the app's logo image.
+</ResponseField>
+
+<ResponseField name="data.categories" type="array">
+  Category tags for the app.
+</ResponseField>

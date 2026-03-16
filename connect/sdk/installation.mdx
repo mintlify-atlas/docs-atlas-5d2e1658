@@ -1,0 +1,90 @@
+---
+title: "Installation"
+description: "Install the Pipedream SDK in your Node.js project."
+---
+
+The Pipedream SDK is a TypeScript-first package that works in both Node.js server environments and the browser. Install it once and import from the appropriate entry point for your environment.
+
+## Prerequisites
+
+- Node.js 18 or later
+- A Pipedream account with a project and OAuth client credentials
+
+## Install the package
+
+<Tabs>
+  <Tab title="npm">
+    ```bash
+    npm install @pipedream/sdk
+    ```
+  </Tab>
+  <Tab title="yarn">
+    ```bash
+    yarn add @pipedream/sdk
+    ```
+  </Tab>
+  <Tab title="pnpm">
+    ```bash
+    pnpm add @pipedream/sdk
+    ```
+  </Tab>
+</Tabs>
+
+## Import the client
+
+The SDK exposes two separate entry points — one for server-side code and one for the browser. Always use the correct entry point for your environment.
+
+### Server (Node.js)
+
+Use the `/server` entry point in any Node.js server environment (Express, Next.js API routes, serverless functions, etc.).
+
+<Tabs>
+  <Tab title="ES Modules">
+    ```typescript
+    import { createBackendClient } from "@pipedream/sdk/server";
+    ```
+  </Tab>
+  <Tab title="CommonJS">
+    ```javascript
+    const { createBackendClient } = require("@pipedream/sdk/server");
+    ```
+  </Tab>
+</Tabs>
+
+### Browser
+
+Use the `/browser` entry point (or the root import) in client-side code.
+
+<Tabs>
+  <Tab title="ES Modules">
+    ```typescript
+    import { createFrontendClient } from "@pipedream/sdk/browser";
+    ```
+  </Tab>
+  <Tab title="CommonJS">
+    ```javascript
+    const { createFrontendClient } = require("@pipedream/sdk");
+    ```
+  </Tab>
+</Tabs>
+
+<Warning>
+  Never import `@pipedream/sdk/server` in browser code. The server entry point contains your OAuth credentials and must only run in a trusted server environment.
+</Warning>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Server client" icon="server" href="/connect/sdk/server-client">
+    Create and configure the backend client to manage accounts and run actions.
+  </Card>
+  <Card title="Browser client" icon="browser" href="/connect/sdk/browser-client">
+    Connect end-user accounts from your frontend using a short-lived token.
+  </Card>
+  <Card title="connect-react" icon="react" href="/connect/sdk/connect-react">
+    Drop in a pre-built React component form to configure any Pipedream action.
+  </Card>
+  <Card title="MCP server" icon="plug" href="/connect/mcp/overview">
+    Expose 2,800+ APIs as MCP tools for AI agents and LLM clients.
+  </Card>
+</CardGroup>

@@ -1,0 +1,57 @@
+---
+title: "Limits"
+description: "Runtime and platform limits that apply to Pipedream workflows and sources."
+---
+
+Pipedream enforces limits to ensure fair resource usage across the platform. Some limits are fixed, while others vary by plan.
+
+<Note>
+  Limits are subject to change. For the latest values, visit [pipedream.com/pricing](https://pipedream.com/pricing) or the [limits docs](https://pipedream.com/docs/limits/).
+</Note>
+
+## Execution limits
+
+| Limit | Default | Notes |
+|---|---|---|
+| Step execution timeout | 30 seconds | Configurable up to plan maximum |
+| Maximum step timeout | 300 seconds (5 min) | Varies by plan |
+| Memory per step | 512 MB | Fixed |
+| Max workflow steps | 512 | Per workflow |
+| Daily invocations | Varies by plan | Resets each day |
+| Workflow concurrency | Varies by plan | Simultaneous executions |
+
+## Event and payload limits
+
+| Limit | Value | Notes |
+|---|---|---|
+| Incoming event payload | 512 KB | HTTP trigger body size |
+| Event retention | 7 days | How long raw event data is stored |
+| Emitted event size | 512 KB | Per event emitted by a source |
+| Events per source per day | Varies by plan | |
+
+## Code and environment limits
+
+| Limit | Value | Notes |
+|---|---|---|
+| Deployed component size | 512 KB | Total code size per component |
+| Environment variable value | 64 KB | Per variable |
+| Environment variables per account | 100 | |
+| `tmp` directory storage | 512 MB | Cleared between cold starts |
+
+## Source polling limits
+
+| Limit | Value | Notes |
+|---|---|---|
+| Minimum polling interval (free) | 15 minutes | How often a timer-based source polls |
+| Minimum polling interval (paid) | 1 minute | Varies by plan |
+
+## Increasing limits
+
+If you need higher limits for your use case:
+
+- Upgrade to a paid plan at [pipedream.com/pricing](https://pipedream.com/pricing)
+- Contact [support@pipedream.com](mailto:support@pipedream.com) to discuss enterprise options
+
+<Tip>
+  Use the `/tmp` directory for large intermediate files in your workflows. Data written there persists for the duration of a single workflow execution.
+</Tip>

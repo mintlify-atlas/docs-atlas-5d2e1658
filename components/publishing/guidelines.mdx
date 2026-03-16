@@ -1,0 +1,156 @@
+---
+title: "Component guidelines"
+description: "Standards and requirements for publishing components to the Pipedream registry."
+---
+
+These guidelines apply to all components contributed to the [Pipedream registry](https://github.com/PipedreamHQ/pipedream/tree/master/components). Following them ensures a consistent, high-quality experience for the entire community.
+
+## Naming conventions
+
+### Component key
+
+The `key` field uniquely identifies a component in the registry. It must:
+
+- Follow the format `app_name-component_name`
+- Use the official app name slug (for example, `github`, `slack`, `google_sheets`)
+- Use kebab-case for the component name portion
+- Be globally unique within the registry
+
+```javascript
+// Correct
+key: "github-new-commit"
+key: "slack-send-message"
+key: "google_sheets-add-row"
+
+// Incorrect — do not use these patterns
+key: "new-github-commit"  // app name not first
+key: "github_new_commit"  // underscores in component name
+key: "GithubNewCommit"    // camelCase
+```
+
+### Component name
+
+The `name` field is the human-readable label shown in the UI. It must:
+
+- Use title case
+- Be concise and descriptive (ideally under 50 characters)
+- Describe what the component does, not which app it uses (the app is shown separately)
+
+```javascript
+// Correct
+name: "New Commit"
+name: "Send Message"
+name: "Add Row"
+
+// Incorrect
+name: "GitHub New Commit"  // redundant app name
+name: "new commit"         // not title case
+```
+
+### Component description
+
+The `description` field appears in search results and the component picker. It must:
+
+- Start with a capital letter
+- Not end with a period
+- Be a complete, clear sentence under 100 characters
+- Begin with a verb for actions (`Send a message...`, `Create an issue...`)
+- Begin with `Emit new event` for sources
+
+```javascript
+// Correct
+description: "Emit new event when a pull request is opened or updated"
+description: "Send a message to a Slack channel or direct message"
+
+// Incorrect
+description: "New commit event."     // ends with period
+description: "slack message sender"  // not capitalized, no verb
+```
+
+## Versioning
+
+All components use [semantic versioning](https://semver.org/):
+
+- Start new components at `0.1.0`
+- Increment the **patch** version (`0.1.0` → `0.1.1`) for bug fixes
+- Increment the **minor** version (`0.1.0` → `0.2.0`) for new optional props or features
+- Increment the **major** version (`0.1.0` → `1.0.0`) for breaking changes (renamed/removed props)
+
+<Warning>
+Bump the version on every change. Pipedream uses the version to determine when to prompt users to upgrade their deployed components.
+</Warning>
+
+## Props quality standards
+
+All props must have:
+
+- A `label` field — use title case
+- A `description` field — explain what the prop does and provide format examples where helpful
+- The correct `type`
+- `optional: true` for any prop that is not required for the component to function
+
+```javascript
+// Correct
+repoFullname: {
+  type: "string",
+  label: "Repository",
+  description: "The full repository name in `owner/repo` format (for example, `PipedreamHQ/pipedream`).",
+},
+
+// Incorrect — missing label and description
+repoFullname: {
+  type: "string",
+},
+```
+
+## Code style
+
+- Use ES module syntax (`export default`, `import`)
+- Use `async`/`await` instead of promise chains
+- Avoid dependencies not available in the Pipedream environment; prefer `@pipedream/platform` utilities
+- Use `axios` from `@pipedream/platform` for HTTP requests rather than raw `fetch` or other HTTP clients
+- Do not hardcode credentials or sensitive values
+- Handle errors gracefully — throw meaningful error messages
+
+```javascript
+// Preferred HTTP pattern
+import { axios } from "@pipedream/platform";
+
+async run({ steps, $ }) {
+  return await axios(this, {
+    url: "https://api.example.com/endpoint",
+    headers: {
+      Authorization: `Bearer ${this.myapp.$auth.oauth_access_token}`,
+    },
+  });
+},
+```
+
+## Testing requirements
+
+Before submitting a component:
+
+1. Test the component using the Pipedream CLI (`pd deploy` or `pd publish`) or in a workflow in the Pipedream UI
+2. Verify it works end-to-end with a real connected account
+3. Confirm it emits well-formed events (for sources) or returns the expected data (for actions)
+4. Test edge cases: empty responses, API errors, optional props not provided
+
+## File organization
+
+Place components in the `components/app_name/` directory:
+
+```text
+components/
+  github/
+    github.app.mjs        # App file with shared propDefinitions and methods
+    sources/
+      new-commit/
+        new-commit.mjs    # Source component
+    actions/
+      create-issue/
+        create-issue.mjs  # Action component
+```
+
+- Each component lives in its own subdirectory
+- The file name matches the directory name
+- Shared code goes in a `common/` directory

@@ -1,0 +1,120 @@
+---
+title: "Connect tokens"
+description: "Create short-lived tokens that allow your end users to connect their accounts through Pipedream Connect."
+---
+
+Connect tokens are short-lived tokens you create server-side and pass to your frontend. Your frontend uses the token to open the Pipedream Connect UI, where the end user connects their account. The token scopes the connection to a specific external user ID in your system.
+
+## How tokens work
+
+<Steps>
+  <Step title="Create a token on your server">
+    Call the tokens endpoint from your backend, passing the `external_user_id` that identifies the user in your system.
+  </Step>
+  <Step title="Pass the token to your frontend">
+    Return the `token` or `connect_link_url` to your frontend.
+  </Step>
+  <Step title="User connects their account">
+    Open the Connect UI with the token. The user authenticates with the third-party app. Pipedream stores the connected account under the provided `external_user_id`.
+  </Step>
+  <Step title="Access the connected account">
+    After the user connects, retrieve their account using the [Connect accounts API](/api/connect/accounts) or the [external users API](/api/connect/external-users).
+  </Step>
+</Steps>
+
+## Create a token
+
+```
+POST /v1/connect/{project_id}/tokens
+```
+
+Creates a new Connect token.
+
+### Request
+
+```bash
+curl -X POST https://api.pipedream.com/v1/connect/<project_id>/tokens \
+  -H "Authorization: Bearer <access_token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "external_user_id": "user-123",
+    "success_redirect_uri": "https://your-app.com/connect/success",
+    "error_redirect_uri": "https://your-app.com/connect/error"
+  }'
+```
+
+<Note>
+Authenticate Connect API requests with an OAuth access token, not your personal API key. See [authentication](/api/authentication#connect-api-oauth-client-credentials).
+</Note>
+
+### Path parameters
+
+<ParamField path="project_id" type="string" required>
+  Your Pipedream project ID.
+</ParamField>
+
+### Request body
+
+<ParamField body="external_user_id" type="string" required>
+  Your end user's ID in your system. This links the connected account to the user. Use a stable, unique identifier such as a database user ID.
+</ParamField>
+
+<ParamField body="success_redirect_uri" type="string">
+  URL to redirect the user to after a successful connection. Pipedream appends query parameters identifying the connected account.
+</ParamField>
+
+<ParamField body="error_redirect_uri" type="string">
+  URL to redirect the user to if the connection fails.
+</ParamField>
+
+<ParamField body="webhook_uri" type="string">
+  Webhook URL that Pipedream calls when the connection succeeds or fails. Useful for server-side notification without relying on redirects.
+</ParamField>
+
+<ParamField body="allowed_origins" type="array">
+  Array of allowed origins that can use this token to call the Pipedream API. Restricts which domains can use the token in browser-based flows.
+</ParamField>
+
+### Response
+
+```json
+{
+  "token": "pd_connect_token_abc123xyz",
+  "expires_at": "2024-03-15T13:00:00.000Z",
+  "connect_link_url": "https://pipedream.com/connect?token=pd_connect_token_abc123xyz"
+}
+```
+
+<ResponseField name="token" type="string">
+  The Connect token. Pass this to the Pipedream Connect SDK or browser client.
+</ResponseField>
+
+<ResponseField name="expires_at" type="string">
+  ISO 8601 timestamp when the token expires. Tokens are short-lived; create a new token for each connection session.
+</ResponseField>
+
+<ResponseField name="connect_link_url" type="string">
+  A pre-built URL that opens the Connect UI directly. Share this link with users or open it in an iframe or popup.
+</ResponseField>
+
+## Using the SDK
+
+The [Pipedream SDK](/connect/sdk/server-client) wraps the tokens API:
+
+```typescript
+import { createBackendClient } from "@pipedream/sdk/server";
+
+const client = createBackendClient({
+  environment: "production",
+  projectId: process.env.PIPEDREAM_PROJECT_ID,
+  credentials: {
+    clientId: process.env.PIPEDREAM_CLIENT_ID,
+    clientSecret: process.env.PIPEDREAM_CLIENT_SECRET,
+  },
+});
+
+const { token, connect_link_url } = await client.createConnectToken({
+  external_user_id: req.user.id, // Your user's ID
+  success_redirect_uri: "https://your-app.com/connect/success",
+});
+```

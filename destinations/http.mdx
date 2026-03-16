@@ -1,0 +1,85 @@
+---
+title: "HTTP destination"
+description: "Deliver events from your workflows to any HTTP endpoint or webhook URL."
+---
+
+The HTTP destination lets you forward event data to any URL asynchronously from a Node.js code step. Use it to fan out events to multiple webhooks, forward data to internal services, or trigger external automations.
+
+## Basic usage
+
+```javascript
+$send.http({
+  method: "POST",
+  url: "https://your-endpoint.com/webhook",
+  data: { key: "value" },
+  headers: { "Content-Type": "application/json" },
+});
+```
+
+Pipedream delivers the request after your step completes. Your step does not wait for a response.
+
+## Parameters
+
+<ParamField path="method" type="string" required>
+  The HTTP method to use. Supported values: `"GET"`, `"POST"`, `"PUT"`, `"PATCH"`, `"DELETE"`.
+</ParamField>
+
+<ParamField path="url" type="string" required>
+  The full URL to send the request to, including the scheme (`https://`). Must be a publicly reachable endpoint.
+</ParamField>
+
+<ParamField path="data" type="object | string">
+  The request body. Pass an object to send JSON, or a string for other formats. When you pass an object, Pipedream serializes it as JSON.
+</ParamField>
+
+<ParamField path="headers" type="object">
+  An object of HTTP headers to include in the request. Keys and values must be strings.
+
+  ```javascript
+  headers: {
+    "Authorization": "Bearer my-token",
+    "Content-Type": "application/json",
+  }
+  ```
+</ParamField>
+
+<ParamField path="params" type="object">
+  An object of query string parameters to append to the URL.
+</ParamField>
+
+## Example: forward events to multiple endpoints
+
+```javascript
+export default defineComponent({
+  async run({ steps, $ }) {
+    const payload = steps.trigger.event.body;
+
+    // Forward to two different services simultaneously
+    $send.http({
+      method: "POST",
+      url: "https://hooks.slack.com/services/YOUR/WEBHOOK/URL",
+      data: { text: `New event: ${JSON.stringify(payload)}` },
+    });
+
+    $send.http({
+      method: "POST",
+      url: "https://api.example.com/ingest",
+      data: payload,
+      headers: {
+        "Authorization": "Bearer my-api-token",
+        "X-Source": "pipedream",
+      },
+    });
+  },
+});
+```
+
+Both requests are queued and delivered asynchronously after the step completes.
+
+<Note>
+  Because delivery is asynchronous, you cannot read the response from the HTTP endpoint within your workflow. If you need the response — for example, to parse a return value or handle errors — use the `axios` package in a regular code step instead.
+</Note>
+
+## Retries
+
+Pipedream automatically retries failed HTTP destination deliveries. If the endpoint returns a non-2xx status code or the request times out, Pipedream retries the delivery with exponential backoff.

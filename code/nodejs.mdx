@@ -1,0 +1,188 @@
+---
+title: "Node.js"
+description: "Write Node.js code steps with full npm support, async/await, and first-class access to Pipedream apps."
+---
+
+## Overview
+
+Pipedream runs Node.js 18+ with ESM module support. You can import any npm package by declaring the import at the top of the file — no `package.json` needed. Pipedream automatically downloads the dependency the first time the step runs.
+
+## Basic structure
+
+Every Node.js step exports a `defineComponent()` call:
+
+```javascript
+export default defineComponent({
+  async run({ steps, $ }) {
+    return "hello from Node.js";
+  },
+});
+```
+
+`defineComponent` is a global available in all Node.js steps. You don’t need to import it.
+
+## Importing npm packages
+
+Import any npm package at the top of the file:
+
+```javascript
+import axios from "axios";
+import _ from "lodash";
+import { parse } from "csv-parse/sync";
+
+export default defineComponent({
+  async run({ steps, $ }) {
+    const response = await axios.get("https://api.example.com/data");
+    return response.data;
+  },
+});
+```
+
+Pipedream resolves the package version from npm the first time the step runs and caches it for future runs. To pin a version, use the full `package@version` import syntax:
+
+```javascript
+import axios from "axios@1.6.0";
+```
+
+## Accessing step data
+
+Read data from upstream steps using the `steps` argument:
+
+```javascript
+export default defineComponent({
+  async run({ steps, $ }) {
+    // Trigger event data
+    const triggerEvent = steps.trigger.event;
+    const requestBody = steps.trigger.event.body;
+    const queryParam = steps.trigger.event.query.name;
+
+    // Output from a previous step named "step_1"
+    const prevResult = steps.step_1.$return_value;
+
+    return { triggerEvent, prevResult };
+  },
+});
+```
+
+## Returning data
+
+`return` a value from `run` to export it as the step result. Downstream steps can access it at `steps.<step_name>.$return_value`.
+
+```javascript
+export default defineComponent({
+  async run({ steps, $ }) {
+    return {
+      message: "hello",
+      timestamp: new Date().toISOString(),
+    };
+  },
+});
+```
+
+Return values must be JSON-serializable.
+
+## Using async/await
+
+All Node.js steps support `async`/`await`. Mark the `run` method `async` and use `await` anywhere inside it:
+
+```javascript
+import axios from "axios";
+
+export default defineComponent({
+  async run({ steps, $ }) {
+    const [users, posts] = await Promise.all([
+      axios.get("https://jsonplaceholder.typicode.com/users"),
+      axios.get("https://jsonplaceholder.typicode.com/posts"),
+    ]);
+
+    return {
+      userCount: users.data.length,
+      postCount: posts.data.length,
+    };
+  },
+});
+```
+
+## Connecting to Pipedream apps
+
+Add an app prop to access credentials for any connected account. Pipedream injects the account’s credentials into `this.<prop_name>.$auth`.
+
+```javascript
+import { WebClient } from "@slack/web-api";
+
+export default defineComponent({
+  props: {
+    slack: {
+      type: "app",
+      app: "slack",
+    },
+  },
+  async run({ steps, $ }) {
+    const web = new WebClient(this.slack.$auth.oauth_access_token);
+
+    return await web.chat.postMessage({
+      text: "Hello, world!",
+      channel: "#general",
+    });
+  },
+});
+```
+
+The shape of `$auth` depends on the app. OAuth apps provide token fields; API key apps provide the key fields you entered when connecting.
+
+## Making HTTP requests with axios
+
+Axios is the recommended HTTP client for Node.js steps:
+
+```javascript
+import axios from "axios";
+
+export default defineComponent({
+  async run({ steps, $ }) {
+    const response = await axios({
+      method: "POST",
+      url: "https://api.example.com/messages",
+      headers: {
+        "Authorization": `Bearer ${process.env.MY_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      data: {
+        text: steps.trigger.event.body.message,
+      },
+    });
+
+    return response.data;
+  },
+});
+```
+
+## Environment variables
+
+Store secrets and configuration in **Settings → Environment Variables** and access them via `process.env`:
+
+```javascript
+const apiKey = process.env.MY_API_KEY;
+const baseUrl = process.env.API_BASE_URL;
+```
+
+## Ending a workflow early
+
+Call `$.flow.exit()` to stop the workflow from running further steps:
+
+```javascript
+export default defineComponent({
+  async run({ steps, $ }) {
+    if (!steps.trigger.event.body.enabled) {
+      $.flow.exit("Feature flag is off — stopping workflow");
+    }
+    // Continues only if enabled is true
+  },
+});
+```
+
+## Runtime environment
+
+- **Node.js version**: 18+
+- **Module system**: ESM (`import`/`export`). CommonJS `require()` is not supported.
+- **Execution timeout**: 60 seconds by default (configurable up to 12 minutes on paid plans)
+- **Memory**: 256 MB by default

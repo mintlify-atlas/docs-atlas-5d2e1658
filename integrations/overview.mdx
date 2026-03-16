@@ -1,0 +1,64 @@
+---
+title: "Integrations overview"
+description: "Connect to 1,000+ apps using Pipedream's pre-built triggers, actions, and connected accounts."
+---
+
+Pipedream provides pre-built integrations for over 1,000 apps. Each integration gives you:
+
+- **Sources (triggers)** — listen for events from an app and start a workflow automatically
+- **Actions** — pre-built steps that perform common operations in an app
+- **Connected accounts** — secure OAuth and API key management so you never handle tokens directly
+
+## Sources
+
+Sources watch for new data from apps and emit events that trigger your workflows. Examples:
+
+- New pull request opened in GitHub
+- New row added to a Google Sheet
+- New message in a Slack channel
+- New subscriber in Mailchimp
+
+When an event occurs, the source emits it and any linked workflows run automatically.
+
+## Actions
+
+Actions are pre-built steps you add to workflows to perform operations in an app without writing code. Examples:
+
+- Send a Slack message
+- Create a HubSpot contact
+- Add a row to Google Sheets
+- Create a GitHub issue
+
+You can also write [custom code steps](https://pipedream.com/docs/code/nodejs/) in Node.js, Python, Go, or Bash when you need logic that a pre-built action doesn't cover.
+
+## Connected accounts
+
+Pipedream manages authentication for every integration. You connect your accounts once — Pipedream stores tokens encrypted at rest and refreshes OAuth tokens automatically. You never handle credentials in your workflow code.
+
+- **OAuth apps** — Pipedream handles the OAuth flow and token refresh
+- **API key apps** — you provide the key once; Pipedream stores and injects it securely
+
+## Browse integrations
+
+You can browse all available integrations at [pipedream.com/apps](https://pipedream.com/apps). Search by app name or category to find sources and actions.
+
+## Open-source component registry
+
+All pre-built sources and actions are open source. You can browse, fork, and contribute components in the [components directory on GitHub](https://github.com/PipedreamHQ/pipedream/tree/master/components).
+
+If a pre-built component doesn't exist for your use case, you can [build your own](https://pipedream.com/docs/components/quickstart/nodejs/sources/) and publish it to the community.
+
+<CardGroup cols={2}>
+  <Card title="Browse apps" icon="grid-2" href="https://pipedream.com/apps">
+    Search 1,000+ integrations at pipedream.com/apps.
+  </Card>
+  <Card title="Component registry" icon="github" href="https://github.com/PipedreamHQ/pipedream/tree/master/components">
+    Browse all open-source sources and actions on GitHub.
+  </Card>
+  <Card title="Build a source" icon="bolt" href="https://pipedream.com/docs/components/quickstart/nodejs/sources/">
+    Create a custom event source for any app or API.
+  </Card>
+  <Card title="Build an action" icon="play" href="https://pipedream.com/docs/components/quickstart/nodejs/actions/">
+    Create a reusable action step for your workflows.
+  </Card>
+</CardGroup>

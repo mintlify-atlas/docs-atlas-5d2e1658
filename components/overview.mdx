@@ -1,0 +1,127 @@
+---
+title: "Components overview"
+description: "Learn about Pipedream's open-source building blocks: sources, actions, and the component registry."
+---
+
+Pipedream components are the open-source building blocks of the platform. They are Node.js modules that follow a standard API, and they power everything from workflow triggers and actions to the tools exposed through the MCP server.
+
+All components live in the [Pipedream registry](https://github.com/PipedreamHQ/pipedream/tree/master/components) — a public GitHub repository with over 3,000 components across 1,000+ apps, contributed by Pipedream and the community.
+
+## Two types of components
+
+<CardGroup cols={2}>
+  <Card title="Sources" icon="bolt">
+    **Event triggers.** Sources listen for events from an external service and emit them into Pipedream. Use them to trigger workflows on a schedule, a webhook, or any real-time event.
+  </Card>
+  <Card title="Actions" icon="play">
+    **Workflow steps.** Actions perform a discrete operation against an API — send a Slack message, create a GitHub issue, add a row to a spreadsheet. They can also be run server-side via `runAction()`.
+  </Card>
+</CardGroup>
+
+## The component registry
+
+The registry is a monorepo at [`github.com/PipedreamHQ/pipedream/tree/master/components`](https://github.com/PipedreamHQ/pipedream/tree/master/components). Components are organized by app:
+
+```
+components/
+  slack/
+    actions/
+      send-message/
+        send-message.mjs
+    sources/
+      new-message-in-channel/
+        new-message-in-channel.mjs
+  github/
+    actions/
+    sources/
+```
+
+Each component file exports a single object defined with `defineComponent()` (for actions) or `defineSource()` (for sources).
+
+## The `defineComponent` API
+
+Every component is a plain JavaScript object that follows the Pipedream component spec:
+
+```javascript
+import { defineComponent } from "@pipedream/types";
+
+export default defineComponent({
+  name: "Send a Slack message",
+  key: "slack-send-message",
+  version: "0.0.1",
+  type: "action",
+  props: {
+    slack: {
+      type: "app",
+      app: "slack",
+    },
+    channel: {
+      type: "string",
+      label: "Channel",
+      description: "The channel to post to.",
+    },
+    text: {
+      type: "string",
+      label: "Message text",
+    },
+  },
+  async run({ steps, $ }) {
+    return await this.slack.chat.postMessage({
+      channel: this.channel,
+      text: this.text,
+    });
+  },
+});
+```
+
+### Key fields
+
+| Field | Description |
+|---|---|
+| `key` | Unique identifier used to reference the component across Pipedream (e.g. `slack-send-message`). |
+| `name` | Human-readable display name. |
+| `version` | Semver version string. |
+| `type` | Either `"action"` or `"source"`. |
+| `props` | The component's configurable inputs. Each prop can be a string, integer, boolean, array, object, or an `"app"` prop that triggers OAuth. |
+| `run` | The function executed when the component runs. |
+
+## Props
+
+Props define the inputs a component accepts. They appear as form fields in the Pipedream UI and in `ComponentFormContainer` from `@pipedream/connect-react`.
+
+```javascript
+props: {
+  // App prop — connects an OAuth account
+  github: {
+    type: "app",
+    app: "github",
+  },
+  // String prop with dynamic options
+  repoFullName: {
+    type: "string",
+    label: "Repository",
+    async options({ page }) {
+      const repos = await this.github.getRepos({ page });
+      return repos.map((r) => r.full_name);
+    },
+  },
+  // Boolean prop
+  isDraft: {
+    type: "boolean",
+    label: "Draft?",
+    default: false,
+    optional: true,
+  },
+}
+```
+
+## Open source and community
+
+All components in the registry are open source under the [Pipedream Source Available License](https://github.com/PipedreamHQ/pipedream/blob/master/LICENSE). You can:
+
+- Browse and fork any component
+- Submit improvements via pull request
+- Build private components for your own workflows
+- Publish components to the public registry
+
+See [Quickstart](/components/quickstart) to build your first component.

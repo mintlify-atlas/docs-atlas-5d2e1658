@@ -1,0 +1,101 @@
+---
+title: "Consuming events"
+description: "Link sources to workflows, retrieve events via the REST API, or stream them in real time with SSE."
+---
+
+## Linking a source to a workflow
+
+The most common way to consume events is to use a source as a workflow trigger. When a source emits an event, your workflow runs immediately with the event data.
+
+<Steps>
+  <Step title="Create or open a workflow">
+    Go to [pipedream.com](https://pipedream.com) and create a new workflow or open an existing one.
+  </Step>
+  <Step title="Select a trigger">
+    Click the trigger step at the top of the workflow and choose **Event Source** as the trigger type.
+  </Step>
+  <Step title="Choose your source">
+    Select an existing deployed source or create a new one. The workflow will run each time that source emits an event.
+  </Step>
+  <Step title="Access event data">
+    In downstream steps, the trigger event is available at `steps.trigger.event`. For an HTTP source, `steps.trigger.event.body` contains the request body.
+  </Step>
+</Steps>
+
+## Inspecting events in the UI
+
+Every source has an event inspector in the Pipedream UI. You can:
+
+- Browse all events emitted by the source
+- Click any event to inspect its full payload
+- Replay an event to re-run any linked workflows
+- Filter events by date or content
+
+Open the inspector by clicking your source under **Sources** in the left sidebar.
+
+## Retrieving events via the REST API
+
+Use the [Pipedream REST API](/api/rest/sources) to retrieve events programmatically.
+
+```bash
+# Retrieve the last 10 events from a source
+curl -H "Authorization: Bearer $PIPEDREAM_API_KEY" \
+  "https://api.pipedream.com/v1/sources/{source_id}/events?n=10"
+```
+
+The response is an array of event objects:
+
+```json
+{
+  "data": [
+    {
+      "id": "evt_abc123",
+      "indexed_at_ms": 1712000000000,
+      "raw_event": {
+        "method": "POST",
+        "body": { "message": "hello" }
+      }
+    }
+  ]
+}
+```
+
+You can paginate through events using the `before` and `after` parameters with event IDs.
+
+## Streaming events with SSE
+
+Pipedream provides a private [Server-Sent Events (SSE)](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events) stream for each source. Connect to the stream to receive events in real time without polling.
+
+```javascript
+import EventSource from "eventsource";
+
+const es = new EventSource(
+  `https://api.pipedream.com/sources/{source_id}/sse`,
+  {
+    headers: {
+      Authorization: `Bearer ${process.env.PIPEDREAM_API_KEY}`,
+    },
+  }
+);
+
+es.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  console.log("New event:", data);
+};
+```
+
+<Info>
+The SSE stream is authenticated. Include your Pipedream API key in the `Authorization` header.
+</Info>
+
+## Deleting events
+
+To delete all events from a source:
+
+```bash
+curl -X DELETE \
+  -H "Authorization: Bearer $PIPEDREAM_API_KEY" \
+  "https://api.pipedream.com/v1/sources/{source_id}/events"
+```
+
+You can also delete individual events by appending the event ID to the URL.

@@ -1,0 +1,212 @@
+---
+title: "Building actions"
+description: "Learn how to build reusable action components that integrate with third-party APIs."
+---
+
+Actions are reusable code steps that perform a specific task — like sending a Slack message, adding a row to Google Sheets, or creating a GitHub issue. You can use actions in any workflow and share them with the Pipedream community.
+
+## Action component structure
+
+An action component is a JavaScript module with these top-level fields:
+
+```javascript
+export default {
+  name: "Send Message",          // Human-readable name shown in the UI
+  key: "slack-send-message",     // Unique identifier: app_name-component_name
+  description: "Send a message to a Slack channel or user",
+  version: "0.1.0",              // Semver version string
+  type: "action",
+  props: {},                     // Input configuration
+  async run({ steps, $ }) {},   // Executes when the action runs
+};
+```
+
+## Defining props
+
+Props define the inputs users configure when adding the action to a workflow. Access prop values via `this.propName`.
+
+```javascript
+export default {
+  name: "Create GitHub Issue",
+  key: "github-create-issue",
+  description: "Create a new issue in a GitHub repository",
+  version: "0.1.0",
+  type: "action",
+  props: {
+    github: {
+      type: "app",
+      app: "github",
+    },
+    owner: {
+      type: "string",
+      label: "Repository owner",
+      description: "The GitHub username or organization that owns the repository.",
+    },
+    repo: {
+      type: "string",
+      label: "Repository name",
+    },
+    title: {
+      type: "string",
+      label: "Issue title",
+    },
+    body: {
+      type: "string",
+      label: "Issue body",
+      optional: true,
+    },
+  },
+  async run({ steps, $ }) {
+    // Access props via this.propName
+    const response = await fetch(
+      `https://api.github.com/repos/${this.owner}/${this.repo}/issues`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${this.github.$auth.oauth_access_token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title: this.title,
+          body: this.body,
+        }),
+      }
+    );
+    return response.json();
+  },
+};
+```
+
+## The `run` handler
+
+The `run` method receives a single object with two properties:
+
+| Property | Description |
+|---|---|
+| `steps` | Results from previous workflow steps. Access as `steps.step_name.$return_value` or `steps.step_name.export_name`. |
+| `$` | Helper object providing utilities like `$.export()` and `$.flow.exit()`. |
+
+```javascript
+async run({ steps, $ }) {
+  // Access previous step output
+  const userId = steps.trigger.event.body.user_id;
+
+  // Run your logic
+  const user = await this.getUser(userId);
+
+  return user;
+},
+```
+
+## Returning data for downstream steps
+
+Return a value from `run()` to make it available as `steps.step_name.$return_value` in subsequent steps:
+
+```javascript
+async run({ steps, $ }) {
+  const issue = await this.createIssue({
+    title: this.title,
+    body: this.body,
+  });
+
+  // The return value is accessible as steps.my_step.$return_value
+  return issue;
+},
+```
+
+## Exporting named values with `$.export()`
+
+Use `$.export("key", value)` to export named values. Access them as `steps.step_name.key` in downstream steps:
+
+```javascript
+async run({ steps, $ }) {
+  const issue = await this.createIssue({
+    title: this.title,
+  });
+
+  // Export named values accessible as steps.my_step.issue_url
+  $.export("issue_url", issue.html_url);
+  $.export("issue_number", issue.number);
+
+  return issue;
+},
+```
+
+<Tip>
+Use `$.export()` when you want to give meaningful names to specific values. Use `return` to pass the entire result object to the next step.
+</Tip>
+
+## Async operations
+
+All action `run()` methods are `async`. You can use `await` for any asynchronous operation:
+
+```javascript
+async run({ steps, $ }) {
+  // Fetch data
+  const response = await fetch("https://api.example.com/data");
+  const data = await response.json();
+
+  // Process in parallel
+  const results = await Promise.all(
+    data.items.map((item) => this.processItem(item))
+  );
+
+  return results;
+},
+```
+
+## Complete action example
+
+This action sends a message to a Slack channel using the Slack app connection:
+
+```javascript
+import { axios } from "@pipedream/platform";
+
+export default {
+  name: "Send Slack Message",
+  key: "slack-send-message",
+  description: "Send a message to a Slack channel",
+  version: "0.1.0",
+  type: "action",
+  props: {
+    slack: {
+      type: "app",
+      app: "slack",
+    },
+    channel: {
+      type: "string",
+      label: "Channel",
+      description: "The channel ID or name (e.g., `#general` or `C01234ABCDE`).",
+    },
+    text: {
+      type: "string",
+      label: "Message text",
+    },
+    username: {
+      type: "string",
+      label: "Bot username",
+      description: "Override the bot's display name for this message.",
+      optional: true,
+    },
+  },
+  async run({ steps, $ }) {
+    const response = await axios(this, {
+      method: "POST",
+      url: "https://slack.com/api/chat.postMessage",
+      headers: {
+        Authorization: `Bearer ${this.slack.$auth.oauth_access_token}`,
+      },
+      data: {
+        channel: this.channel,
+        text: this.text,
+        username: this.username,
+      },
+    });
+
+    $.export("ts", response.ts);
+    $.export("channel", response.channel);
+
+    return response;
+  },
+};
+```

@@ -1,0 +1,112 @@
+---
+title: "Bash"
+description: "Write shell scripts in a Pipedream workflow step with common CLI tools pre-installed."
+---
+
+## Overview
+
+Pipedream runs Bash scripts in a Linux environment with common tools pre-installed. Use Bash steps for system commands, calling CLIs, and simple data transformations with tools like `curl` and `jq`.
+
+## Basic structure
+
+A Bash step is a shell script. Write any valid Bash code:
+
+```bash
+echo "Hello from Bash"
+
+# Exit 0 on success (default)
+exit 0
+```
+
+## Available tools
+
+The following tools are available in the Bash environment:
+
+- `curl` — HTTP requests
+- `jq` — JSON processing
+- `wget` — file downloads
+- `git` — version control
+- `python3` — run Python one-liners
+- `node` — run Node.js snippets
+- Standard Unix utilities: `awk`, `sed`, `grep`, `sort`, `uniq`, `wc`, `cut`, `tr`
+
+## Accessing step data
+
+Upstream step data is available as a JSON string in the `PIPEDREAM_STEPS` environment variable:
+
+```bash
+# Print all step data
+echo $PIPEDREAM_STEPS
+
+# Extract a field with jq
+MESSAGE=$(echo $PIPEDREAM_STEPS | jq -r '.trigger.event.body.message')
+echo "Message: $MESSAGE"
+```
+
+## Making HTTP requests with curl
+
+```bash
+# GET request
+RESPONSE=$(curl -s https://api.example.com/data)
+echo $RESPONSE | jq .
+
+# POST request with JSON body
+MESSAGE=$(echo $PIPEDREAM_STEPS | jq -r '.trigger.event.body.text')
+
+curl -s -X POST https://api.example.com/messages \
+  -H "Authorization: Bearer $MY_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d "{\"text\": \"$MESSAGE\"}"
+```
+
+## Using environment variables
+
+Access Pipedream environment variables directly:
+
+```bash
+echo $MY_API_KEY
+echo $DATABASE_URL
+
+# Use in curl
+curl -H "Authorization: Bearer $MY_API_KEY" https://api.example.com/me
+```
+
+Set environment variables in **Settings → Environment Variables** in the Pipedream UI.
+
+## Processing JSON with jq
+
+```bash
+# Parse a JSON response and extract fields
+RESPONSE=$(curl -s https://jsonplaceholder.typicode.com/posts/1)
+
+TITLE=$(echo $RESPONSE | jq -r '.title')
+USER_ID=$(echo $RESPONSE | jq -r '.userId')
+
+echo "Title: $TITLE"
+echo "User ID: $USER_ID"
+```
+
+## Exiting with an error
+
+Exit with a non-zero status code to fail the step and stop the workflow:
+
+```bash
+RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" https://api.example.com/health)
+
+if [ "$RESPONSE" != "200" ]; then
+  echo "Health check failed with status $RESPONSE" >&2
+  exit 1
+fi
+
+echo "Health check passed"
+```
+
+<Warning>
+Bash steps cannot export structured return values the way Node.js or Python steps can. Use `PIPEDREAM_STEPS` to read upstream data, but prefer Node.js or Python steps when you need to pass structured data to downstream steps.
+</Warning>
+
+## Runtime environment
+
+- **Shell**: Bash
+- **OS**: Linux
+- **Execution timeout**: 60 seconds by default

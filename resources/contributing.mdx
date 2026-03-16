@@ -1,0 +1,101 @@
+---
+title: "Contributing"
+description: "Ways to contribute to Pipedream — from sharing workflows to building and submitting components."
+---
+
+Pipedream is built with the community in mind. There are many ways to contribute, whether you want to write code or simply spread the word.
+
+## Community contributions
+
+<CardGroup cols={2}>
+  <Card title="Follow and star" icon="star" href="https://github.com/PipedreamHQ/pipedream">
+    Star the GitHub repo, follow [@pipedream](https://twitter.com/pipedream) on Twitter, and subscribe to the [YouTube channel](https://www.youtube.com/pipedreamhq).
+  </Card>
+  <Card title="Ask and answer questions" icon="comments" href="https://pipedream.com/community">
+    Ask questions and help others in the [community forum](https://pipedream.com/community). Your question may help someone else too.
+  </Card>
+  <Card title="Share your workflows" icon="share-nodes" href="https://pipedream.com/community/c/show-tell/8">
+    Make your workflow public and share it in the community or on Twitter. We may feature it to help new users.
+  </Card>
+  <Card title="Create content" icon="pen-nib" href="https://pipedream.com/support">
+    Write a blog post or record a video about how you use Pipedream. [Contact us](https://pipedream.com/support) to get it listed on our site.
+  </Card>
+  <Card title="Report bugs" icon="bug" href="https://pipedream.com/community/c/bugs/9">
+    Found an issue? Report it in the [bugs category](https://pipedream.com/community/c/bugs/9) of the community forum.
+  </Card>
+  <Card title="Request features" icon="lightbulb" href="https://pipedream.com/community/c/feature-requests/7">
+    Submit [feature requests](https://pipedream.com/community/c/feature-requests/7) or vote on existing ones on GitHub.
+  </Card>
+</CardGroup>
+
+## Request an app integration
+
+If Pipedream doesn't support an app you need, [request it on GitHub](https://github.com/PipedreamHQ/pipedream/issues/new?assignees=&labels=app%2C+enhancement&template=app---service-integration.md&title=[APP]).
+
+## Update the docs
+
+See a mistake or gap in the documentation? The docs source lives in the [GitHub repo](https://github.com/PipedreamHQ/pipedream/tree/master/docs). Submit a pull request with your fix.
+
+## Develop sources and actions
+
+You can contribute directly to Pipedream's open registry of components by:
+
+- Creating new sources or actions
+- Fixing bugs in existing components
+- Improving descriptions and metadata
+
+All components live in the [`components/` directory](https://github.com/PipedreamHQ/pipedream/tree/master/components) of the GitHub repo.
+
+### Set up your development environment
+
+You can develop components entirely in the browser using Gitpod — no local setup required.
+
+<Steps>
+  <Step title="Fork the repository">
+    Fork the [PipedreamHQ/pipedream](https://github.com/PipedreamHQ/pipedream) repository on GitHub.
+  </Step>
+  <Step title="Add your API key to Gitpod">
+    Add your Pipedream API key to your [Gitpod Variables](https://gitpod.io/variables) as `PD_API_KEY`.
+  </Step>
+  <Step title="Open your fork in Gitpod">
+    Open a new Gitpod workspace pointing at your fork:
+    ```
+    https://gitpod.io/#https://github.com/<your-github-username>/pipedream
+    ```
+    The workspace automatically configures the Pipedream CLI with your API key.
+  </Step>
+  <Step title="Scaffold or edit a component">
+    Run `pd init app` to scaffold a new app, or edit an existing component in the `components/` directory.
+  </Step>
+</Steps>
+
+Alternatively, open the official repo directly in Gitpod:
+
+[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/PipedreamHQ/pipedream)
+
+## The pull request process
+
+When you're ready to submit your contribution:
+
+1. Create a new Git branch for your changes
+2. Submit a pull request to merge into `master`
+3. A Pipedream team member will be automatically notified and will review your PR
+4. You can also reach out in the [dev community](https://pipedream.com/community/c/dev/11) or on [Slack](https://pipedream.com/support) for help
+
+### Spellchecking
+
+A spellchecker runs automatically on Markdown files in every PR. If the check fails, look at the output for the misspelled words:
+
+```text
+Misspelled words:
+<htmlcontent> README.md: html>body>p
+--------------------------------------------------------------------------------
+lkjsdflkjsdflkjsdflk
+--------------------------------------------------------------------------------
+
+!!!Spelling check failed!!!
+```
+
+If the flagged word is a valid technical term (like a library name or product name), add it to `.wordlist.txt` in the repo root.
+
+For full contribution guidelines, see the [component guidelines](https://pipedream.com/docs/components/guidelines/).

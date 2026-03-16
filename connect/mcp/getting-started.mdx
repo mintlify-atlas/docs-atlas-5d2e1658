@@ -1,0 +1,145 @@
+---
+title: "Getting started"
+description: "Connect an AI client to Pipedream's remote MCP server in minutes."
+---
+
+This guide walks you through configuring an MCP client to use Pipedream's hosted MCP server at `mcp.pipedream.com`.
+
+## Prerequisites
+
+- A [Pipedream account](https://pipedream.com/auth/signup)
+- A Pipedream project ([create one here](https://pipedream.com/projects))
+- A Pipedream [OAuth client](https://pipedream.com/docs/rest-api/auth#creating-an-oauth-client) with a client ID and secret
+- An MCP-compatible client (Claude Desktop, Cursor, or your own agent)
+
+## Step 1: Get your credentials
+
+<Steps>
+  <Step title="Create a project">
+    Go to [pipedream.com/projects](https://pipedream.com/projects) and create a new project. Connected accounts will be stored here.
+  </Step>
+  <Step title="Create an OAuth client">
+    In your project settings, create an OAuth client to get your `PIPEDREAM_CLIENT_ID` and `PIPEDREAM_CLIENT_SECRET`.
+  </Step>
+  <Step title="Note your project ID">
+    Copy your project ID from the project settings page. It looks like `proj_abc123`.
+  </Step>
+</Steps>
+
+## Step 2: Configure your MCP client
+
+The remote MCP server supports both SSE and Streamable HTTP transports. Use the URL format:
+
+```
+https://mcp.pipedream.com/{external_user_id}/{app}
+```
+
+Replace `{external_user_id}` with your user's ID in your system, and `{app}` with the app name slug (e.g. `slack`, `github`, `google_sheets`).
+
+<Tabs>
+  <Tab title="Claude Desktop">
+    Add a new MCP server entry to your Claude Desktop config file.
+
+    **Location on macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
+
+    ```json
+    {
+      "mcpServers": {
+        "pipedream-slack": {
+          "url": "https://mcp.pipedream.com/user_123/slack",
+          "env": {
+            "PIPEDREAM_CLIENT_ID": "your_client_id",
+            "PIPEDREAM_CLIENT_SECRET": "your_client_secret",
+            "PIPEDREAM_PROJECT_ID": "proj_abc123",
+            "PIPEDREAM_PROJECT_ENVIRONMENT": "production"
+          }
+        }
+      }
+    }
+    ```
+
+    Restart Claude Desktop after saving the config.
+  </Tab>
+  <Tab title="Cursor">
+    Open **Cursor Settings** → **MCP** → **Add MCP Server** and provide the server URL:
+
+    ```
+    https://mcp.pipedream.com/user_123/slack
+    ```
+
+    Set the required environment variables in your Cursor config:
+
+    ```json
+    {
+      "mcpServers": {
+        "pipedream-slack": {
+          "url": "https://mcp.pipedream.com/user_123/slack",
+          "env": {
+            "PIPEDREAM_CLIENT_ID": "your_client_id",
+            "PIPEDREAM_CLIENT_SECRET": "your_client_secret",
+            "PIPEDREAM_PROJECT_ID": "proj_abc123",
+            "PIPEDREAM_PROJECT_ENVIRONMENT": "production"
+          }
+        }
+      }
+    }
+    ```
+  </Tab>
+  <Tab title="Custom agent">
+    Use any MCP client library. The server supports both SSE and Streamable HTTP:
+
+    ```typescript
+    // Streamable HTTP (recommended)
+    const serverUrl = "https://mcp.pipedream.com/v1/user_123/slack";
+
+    // SSE
+    const serverUrl = "https://mcp.pipedream.com/user_123/slack";
+    ```
+
+    Pass your credentials as environment variables or via your client's configuration.
+  </Tab>
+</Tabs>
+
+## Step 3: Connect an app
+
+When your MCP client first calls a tool for an app, Pipedream will prompt the user to authenticate. The server handles the full OAuth flow.
+
+1. Your MCP client calls a tool (e.g. `send_message` for Slack).
+2. If no connected account exists, the server returns a connect URL.
+3. The user visits the URL and completes the OAuth flow.
+4. The account is stored in your Pipedream project and reused for all future calls.
+
+## Step 4: Make API calls
+
+Once authenticated, your MCP client can call any tool exposed by the app. For example, with Slack connected:
+
+```
+Tool: send_message
+Parameters:
+  channel: "#general"
+  text: "Hello from my AI agent!"
+```
+
+Pipedream executes the action using the stored credentials and returns the result.
+
+## Finding app name slugs
+
+Every app in Pipedream has a unique name slug used in the MCP URL. Find it in the **Authentication** section of any app page at [pipedream.com/apps](https://pipedream.com/apps). For example:
+
+| App | Name slug |
+|---|---|
+| Slack | `slack` |
+| GitHub | `github` |
+| Google Sheets | `google_sheets` |
+| Salesforce | `salesforce` |
+| Stripe | `stripe` |
+
+## Dynamic endpoint
+
+To give users access to all their connected apps at once, use the dynamic endpoint:
+
+```
+https://mcp.pipedream.com/{external_user_id}
+```
+
+This powers experiences like [chat.pipedream.com](https://chat.pipedream.com), where the agent discovers and uses whatever apps the user has connected.

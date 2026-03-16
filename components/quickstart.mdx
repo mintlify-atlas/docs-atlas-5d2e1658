@@ -1,0 +1,161 @@
+---
+title: "Quickstart"
+description: "Build, test, and deploy your first Pipedream component."
+---
+
+This guide walks you through creating a simple Pipedream source (event trigger) and action from scratch.
+
+## Prerequisites
+
+- Node.js 18 or later
+- pnpm
+- The [Pipedream CLI](https://pipedream.com/docs/cli/reference)
+- A free [Pipedream account](https://pipedream.com/auth/signup)
+
+## Step 1: Set up your environment
+
+<Steps>
+  <Step title="Install the Pipedream CLI">
+    ```bash
+    npm install -g @pipedream/cli
+    ```
+
+    Log in to your Pipedream account:
+
+    ```bash
+    pd login
+    ```
+  </Step>
+  <Step title="Fork and clone the registry">
+    Fork the [pipedream repository](https://github.com/PipedreamHQ/pipedream) on GitHub, then clone your fork:
+
+    ```bash
+    git clone https://github.com/YOUR_USERNAME/pipedream.git
+    cd pipedream
+    pnpm install
+    ```
+  </Step>
+  <Step title="Navigate to the components directory">
+    Components live under `components/` organized by app:
+
+    ```bash
+    cd components
+    ls
+    # github/  slack/  stripe/  ...
+    ```
+  </Step>
+</Steps>
+
+## Step 2: Create a source
+
+Sources listen for events and emit them into Pipedream. This example creates a simple HTTP source that emits every incoming request.
+
+Create a new file at `components/my-app/sources/http-request/http-request.mjs`:
+
+```javascript
+import { defineSource } from "@pipedream/types";
+
+export default defineSource({
+  name: "New HTTP Request",
+  key: "my-app-http-request",
+  version: "0.0.1",
+  type: "source",
+  props: {
+    http: {
+      type: "$.interface.http",
+      customResponse: true,
+    },
+  },
+  async run({ steps, event }) {
+    this.$emit(event, {
+      summary: `New request: ${event.method} ${event.path}`,
+    });
+    await this.http.respond({
+      status: 200,
+      body: { ok: true },
+    });
+  },
+});
+```
+
+## Step 3: Create an action
+
+Actions perform a single operation against an API. This example calls a hypothetical REST API.
+
+Create a new file at `components/my-app/actions/create-item/create-item.mjs`:
+
+```javascript
+import { defineComponent } from "@pipedream/types";
+
+export default defineComponent({
+  name: "Create Item",
+  key: "my-app-create-item",
+  version: "0.0.1",
+  type: "action",
+  props: {
+    myApp: {
+      type: "app",
+      app: "my_app",
+    },
+    name: {
+      type: "string",
+      label: "Item name",
+    },
+    description: {
+      type: "string",
+      label: "Description",
+      optional: true,
+    },
+  },
+  async run({ steps, $ }) {
+    const response = await this.myApp._makeRequest({
+      method: "POST",
+      url: "/items",
+      data: {
+        name: this.name,
+        description: this.description,
+      },
+    });
+
+    $.export("item", response);
+    return response;
+  },
+});
+```
+
+## Step 4: Test locally
+
+Use the Pipedream CLI to run your component locally before deploying:
+
+```bash
+# Test an action
+pd run components/my-app/actions/create-item/create-item.mjs
+
+# Test a source
+pd dev components/my-app/sources/http-request/http-request.mjs
+```
+
+The CLI prompts you for prop values and runs the component in a sandboxed Node.js environment.
+
+## Step 5: Deploy
+
+Deploy your component to Pipedream:
+
+```bash
+pd deploy components/my-app/sources/http-request/http-request.mjs
+```
+
+After deployment, the source appears in your Pipedream account and can be used as a workflow trigger. Actions can be used as workflow steps or called via `runAction()` in the SDK.
+
+## Contribute to the registry
+
+To share your component with the community:
+
+1. Follow the [contribution guide](https://github.com/PipedreamHQ/pipedream/blob/master/CONTRIBUTING.md) in the repository.
+2. Make sure your component has a `key` that follows the `{app-slug}-{action-name}` convention.
+3. Include the correct `version` and `type` fields.
+4. Open a pull request against the main `pipedream` repository.
+
+<Tip>
+  Look at existing components for the app you're building on to understand patterns used for authentication, pagination, and error handling.
+</Tip>

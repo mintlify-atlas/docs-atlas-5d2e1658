@@ -1,0 +1,164 @@
+---
+title: "Building actions"
+description: "Build a custom reusable action using defineComponent() to add any logic to your workflows."
+---
+
+## The defineComponent() structure
+
+Actions use `defineComponent()` to define their structure. Here is a complete example:
+
+```javascript
+export default defineComponent({
+  name: "Send Greeting",
+  description: "Returns a greeting for the given name",
+  key: "send-greeting",
+  version: "0.0.1",
+  type: "action",
+  props: {
+    name: {
+      type: "string",
+      label: "Name",
+      description: "The name to greet",
+    },
+  },
+  async run({ steps, $ }) {
+    return `Hello, ${this.name}!`;
+  },
+});
+```
+
+The `run` method receives `steps` (upstream step data) and `$` (Pipedream helpers). Whatever you `return` from `run` is available to downstream steps as `steps.<step_name>.$return_value`.
+
+## Defining props
+
+Props are the inputs users fill in when they add your action to a workflow. Each prop has a `type` and optional metadata.
+
+### Prop types
+
+```javascript
+props: {
+  // String input
+  message: {
+    type: "string",
+    label: "Message",
+    description: "The message to send",
+  },
+
+  // Integer input
+  count: {
+    type: "integer",
+    label: "Count",
+    default: 10,
+  },
+
+  // Boolean toggle
+  sendNotification: {
+    type: "boolean",
+    label: "Send notification",
+    default: false,
+  },
+
+  // Object (JSON)
+  metadata: {
+    type: "object",
+    label: "Metadata",
+    optional: true,
+  },
+
+  // Array of strings
+  tags: {
+    type: "string[]",
+    label: "Tags",
+    optional: true,
+  },
+}
+```
+
+### App props
+
+To connect a Pipedream app and access its credentials, add a prop with `type: "app"`:
+
+```javascript
+props: {
+  slack: {
+    type: "app",
+    app: "slack",
+  },
+},
+```
+
+After connecting, access the app’s OAuth token or API key via `this.slack.$auth`:
+
+```javascript
+async run({ steps, $ }) {
+  const token = this.slack.$auth.oauth_access_token;
+  // Use token to call the Slack API
+},
+```
+
+The exact shape of `$auth` depends on the app. For OAuth apps it contains token fields; for API key apps it contains the key fields you specified when connecting.
+
+## Accessing prop values
+
+Access prop values inside `run` using `this.propName`:
+
+```javascript
+props: {
+  channelId: { type: "string", label: "Channel ID" },
+  message: { type: "string", label: "Message" },
+},
+async run({ steps, $ }) {
+  const response = await fetch(`https://slack.com/api/chat.postMessage`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      channel: this.channelId,
+      text: this.message,
+    }),
+  });
+  return response.json();
+},
+```
+
+## Returning data for downstream steps
+
+Anything you `return` from `run` is exported as the step’s return value and available in downstream steps:
+
+```javascript
+async run({ steps, $ }) {
+  const result = await callSomeApi();
+  return result; // available as steps.<this_step>.$return_value
+},
+```
+
+You can return any JSON-serializable value: strings, numbers, objects, arrays.
+
+## Accessing upstream step data
+
+The `steps` argument in `run` contains all upstream step data:
+
+```javascript
+async run({ steps, $ }) {
+  const triggerBody = steps.trigger.event.body;
+  const previousStepResult = steps.step_1.$return_value;
+  // ...
+},
+```
+
+## Publishing actions with the CLI
+
+You can publish a custom action to make it available across all your workflows:
+
+```bash
+# Publish an action
+pd publish my-action.mjs
+
+# List your published components
+pd components ls
+```
+
+To share an action with the Pipedream community, submit a pull request to the [pipedream repository](https://github.com/PipedreamHQ/pipedream/tree/master/components) following the [contribution guidelines](https://github.com/PipedreamHQ/pipedream/blob/master/CONTRIBUTING.md).
+
+<Tip>
+Published actions must have a unique `key`, a valid semver `version`, and a `type` of `"action"`.
+</Tip>

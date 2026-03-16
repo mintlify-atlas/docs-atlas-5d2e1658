@@ -1,0 +1,119 @@
+---
+title: "Workflows overview"
+description: "Workflows are sequences of steps triggered by an event. Learn how they work and how to build them."
+---
+
+A workflow is the core building block of Pipedream. It's a sequence of steps that executes in response to an event — an HTTP request, a cron schedule, or a new record in a third-party app.
+
+## How workflows work
+
+Every workflow follows the same lifecycle:
+
+1. **An event is received.** The trigger fires — an HTTP request arrives, a timer ticks, or a connected event source emits data.
+2. **Steps execute in order.** Each step receives the original trigger event and the exported data from all previous steps.
+3. **Results are stored.** Pipedream retains the execution log, including each step's inputs and outputs, for debugging and inspection.
+
+Workflows run on Pipedream's managed infrastructure. There are no servers to provision or containers to build — deploy a workflow and it scales automatically.
+
+## Workflow anatomy
+
+```
+Trigger  →  Step 1  →  Step 2  →  Step 3  →  ...
+```
+
+Every workflow has exactly **one trigger** as the first step. After the trigger you can add any number of steps:
+
+- **Pre-built actions** — search Pipedream's registry of 1,000+ integrations and add them with no code
+- **Code steps** — write Node.js, Python, Go, or Bash to implement custom logic
+- **More triggers are not allowed** — only the first step can be a trigger
+
+## Accessing data between steps
+
+Each step exports its return value. Downstream steps reference previous step data through the `steps` object:
+
+```javascript
+// In any code step:
+steps.trigger.event         // the full trigger event
+steps.trigger.event.body    // HTTP request body (for HTTP triggers)
+steps.my_step.$return_value // return value of the step named "my_step"
+```
+
+Here's a complete code step that reads the HTTP trigger body and transforms it:
+
+```javascript
+export default defineComponent({
+  async run({ steps, $ }) {
+    const body = steps.trigger.event.body;
+
+    // Any value you return is available to downstream steps
+    return {
+      userId: body.user_id,
+      action: body.action,
+      processedAt: new Date().toISOString(),
+    };
+  },
+});
+```
+
+You can also connect to a Pipedream-managed account in a code step using `app` props:
+
+```javascript
+import { WebClient } from "@slack/web-api";
+
+export default defineComponent({
+  props: {
+    slack: {
+      type: "app",
+      app: "slack",
+    },
+  },
+  async run({ steps, $ }) {
+    const web = new WebClient(this.slack.$auth.oauth_access_token);
+    return await web.chat.postMessage({
+      text: `New event: ${steps.trigger.event.body.message}`,
+      channel: "#alerts",
+    });
+  },
+});
+```
+
+## Ending a workflow early
+
+Call `$.flow.exit()` to stop execution at any point:
+
+```javascript
+export default defineComponent({
+  async run({ steps, $ }) {
+    if (!steps.trigger.event.body.user_id) {
+      $.flow.exit("No user_id provided — skipping");
+    }
+    // continues only if user_id is present
+  },
+});
+```
+
+## Workflow settings
+
+Each workflow has settings you can configure from the workflow editor:
+
+- **Name and description** — label your workflow for easy identification
+- **Error handling** — choose what happens when a step throws an error
+- **Concurrency and rate limiting** — control how many executions run simultaneously
+- **Environment variables** — reference secrets without hardcoding them
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Steps" icon="list-ol" href="/workflows/steps">
+    Triggers, actions, and code steps in depth
+  </Card>
+  <Card title="Triggers" icon="bolt" href="/workflows/triggers">
+    HTTP, schedule, and app event triggers
+  </Card>
+  <Card title="Managing workflows" icon="gear" href="/workflows/managing-workflows">
+    Enable, disable, view logs, and organize workflows
+  </Card>
+  <Card title="Key concepts" icon="lightbulb" href="/key-concepts">
+    Overview of every Pipedream concept
+  </Card>
+</CardGroup>

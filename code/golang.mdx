@@ -1,0 +1,166 @@
+---
+title: "Go"
+description: "Write Go code steps using the pipedream-go SDK to access step data and respond to events."
+---
+
+## Overview
+
+Pipedream runs Go code steps using standard Go modules. Import any Go module by declaring it in your `import` block — Pipedream downloads dependencies automatically.
+
+## Basic structure
+
+Every Go step defines a `main` function:
+
+```go
+import (
+  "fmt"
+  pd "github.com/PipedreamHQ/pipedream-go"
+)
+
+func main() {
+  fmt.Println("hello from Go")
+  pd.Respond(map[string]string{"status": "ok"})
+}
+```
+
+The `pd` package provides access to upstream step data and the `Respond` function for exporting data.
+
+## Importing Go modules
+
+Declare all imports in the `import` block. Pipedream resolves them using Go modules:
+
+```go
+import (
+  "encoding/json"
+  "fmt"
+  "net/http"
+
+  pd "github.com/PipedreamHQ/pipedream-go"
+)
+
+func main() {
+  resp, err := http.Get("https://api.example.com/data")
+  if err != nil {
+    fmt.Println("Error:", err)
+    return
+  }
+  defer resp.Body.Close()
+
+  var data map[string]interface{}
+  json.NewDecoder(resp.Body).Decode(&data)
+
+  pd.Respond(data)
+}
+```
+
+## Accessing step data
+
+Upstream step data is available through `pd.Steps`:
+
+```go
+import (
+  "fmt"
+  pd "github.com/PipedreamHQ/pipedream-go"
+)
+
+func main() {
+  // Access trigger event
+  trigger := pd.Steps["trigger"].(map[string]interface{})
+  event := trigger["event"].(map[string]interface{})
+
+  body := event["body"]
+  fmt.Println("Request body:", body)
+
+  // Access a previous step's return value
+  step1 := pd.Steps["step_1"].(map[string]interface{})
+  result := step1["$return_value"]
+
+  pd.Respond(map[string]interface{}{
+    "body":   body,
+    "result": result,
+  })
+}
+```
+
+`pd.Steps` is a `map[string]interface{}`. Use type assertions to extract typed values.
+
+## Responding with pd.Respond()
+
+Call `pd.Respond()` to export data from the step. This is equivalent to `return` in Node.js or Python steps. Downstream steps can access the value at `steps.<step_name>.$return_value`.
+
+```go
+import (
+  pd "github.com/PipedreamHQ/pipedream-go"
+)
+
+func main() {
+  result := map[string]interface{}{
+    "message": "processed",
+    "count":   42,
+  }
+  pd.Respond(result)
+}
+```
+
+Pass any value that can be JSON-serialized.
+
+## Making HTTP requests
+
+```go
+import (
+  "encoding/json"
+  "io"
+  "net/http"
+
+  pd "github.com/PipedreamHQ/pipedream-go"
+)
+
+func main() {
+  resp, err := http.Get("https://jsonplaceholder.typicode.com/posts/1")
+  if err != nil {
+    panic(err)
+  }
+  defer resp.Body.Close()
+
+  body, _ := io.ReadAll(resp.Body)
+
+  var post map[string]interface{}
+  json.Unmarshal(body, &post)
+
+  pd.Respond(post)
+}
+```
+
+## Environment variables
+
+Access environment variables with `os.Getenv`:
+
+```go
+import (
+  "os"
+
+  pd "github.com/PipedreamHQ/pipedream-go"
+)
+
+func main() {
+  apiKey := os.Getenv("MY_API_KEY")
+  pd.Respond(map[string]string{"key_length": fmt.Sprintf("%d", len(apiKey))})
+}
+```
+
+Set environment variables in **Settings → Environment Variables** in the Pipedream UI.
+
+## The pipedream-go SDK
+
+Import path: `pd "github.com/PipedreamHQ/pipedream-go"`
+
+| Symbol | Description |
+|---|---|
+| `pd.Steps` | `map[string]interface{}` containing all upstream step data |
+| `pd.Respond(v)` | Export `v` as the step’s return value |
+
+## Runtime environment
+
+- **Go version**: latest stable
+- **Module support**: Go modules (`go.mod` managed automatically)
+- **Execution timeout**: 60 seconds by default

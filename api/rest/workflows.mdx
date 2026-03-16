@@ -1,0 +1,150 @@
+---
+title: "Workflows"
+description: "REST API endpoints for listing and retrieving your Pipedream workflows."
+---
+
+Workflows are sequences of steps triggered by an event. Use these endpoints to list and inspect your workflows programmatically.
+
+## List workflows
+
+```
+GET /v1/workflows
+```
+
+Returns a list of workflows in your account.
+
+### Request
+
+```bash
+curl https://api.pipedream.com/v1/workflows \
+  -H "Authorization: Bearer <api_key>"
+```
+
+### Query parameters
+
+<ParamField query="limit" type="integer">
+  Maximum number of workflows to return. Defaults to 10.
+</ParamField>
+
+<ParamField query="after" type="string">
+  Cursor for pagination. Pass the `end_cursor` from a previous response to get the next page.
+</ParamField>
+
+<ParamField query="before" type="string">
+  Cursor to retrieve results before this cursor.
+</ParamField>
+
+### Response
+
+```json
+{
+  "data": [
+    {
+      "id": "p_abc123",
+      "name": "Send Slack notification on new GitHub issue",
+      "active": true,
+      "created_at": "2024-01-15T10:30:00.000Z",
+      "updated_at": "2024-03-01T08:15:00.000Z"
+    }
+  ],
+  "page_info": {
+    "total_count": 42,
+    "count": 10,
+    "start_cursor": "p_abc123",
+    "end_cursor": "p_xyz789"
+  }
+}
+```
+
+<ResponseField name="data" type="array">
+  Array of workflow objects.
+</ResponseField>
+
+<ResponseField name="data[].id" type="string">
+  Unique workflow ID, prefixed with `p_`.
+</ResponseField>
+
+<ResponseField name="data[].name" type="string">
+  Human-readable workflow name.
+</ResponseField>
+
+<ResponseField name="data[].active" type="boolean">
+  Whether the workflow is currently active.
+</ResponseField>
+
+<ResponseField name="data[].created_at" type="string">
+  ISO 8601 timestamp when the workflow was created.
+</ResponseField>
+
+<ResponseField name="data[].updated_at" type="string">
+  ISO 8601 timestamp when the workflow was last updated.
+</ResponseField>
+
+<ResponseField name="page_info" type="object">
+  Pagination metadata.
+</ResponseField>
+
+<ResponseField name="page_info.total_count" type="integer">
+  Total number of workflows in your account.
+</ResponseField>
+
+<ResponseField name="page_info.end_cursor" type="string">
+  Pass this value as `after` to retrieve the next page.
+</ResponseField>
+
+---
+
+## Get a workflow
+
+```
+GET /v1/workflows/{workflow_id}
+```
+
+Returns the details of a specific workflow.
+
+### Request
+
+```bash
+curl https://api.pipedream.com/v1/workflows/p_abc123 \
+  -H "Authorization: Bearer <api_key>"
+```
+
+### Path parameters
+
+<ParamField path="workflow_id" type="string" required>
+  The workflow ID. Prefixed with `p_`.
+</ParamField>
+
+### Response
+
+```json
+{
+  "data": {
+    "id": "p_abc123",
+    "name": "Send Slack notification on new GitHub issue",
+    "active": true,
+    "created_at": "2024-01-15T10:30:00.000Z",
+    "updated_at": "2024-03-01T08:15:00.000Z"
+  }
+}
+```
+
+<ResponseField name="data.id" type="string">
+  Unique workflow ID.
+</ResponseField>
+
+<ResponseField name="data.name" type="string">
+  Human-readable workflow name.
+</ResponseField>
+
+<ResponseField name="data.active" type="boolean">
+  Whether the workflow is currently active.
+</ResponseField>
+
+<ResponseField name="data.created_at" type="string">
+  ISO 8601 timestamp when the workflow was created.
+</ResponseField>
+
+<ResponseField name="data.updated_at" type="string">
+  ISO 8601 timestamp when the workflow was last updated.
+</ResponseField>

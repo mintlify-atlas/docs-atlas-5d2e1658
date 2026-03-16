@@ -1,0 +1,229 @@
+---
+title: "connect-react"
+description: "Drop in pre-built React components to let users configure and run Pipedream actions in your app."
+---
+
+The `@pipedream/connect-react` package provides React components that render a fully functional configuration form for any action or trigger in the Pipedream registry. Users can authenticate apps and fill in props — all without leaving your UI.
+
+## Install
+
+```bash
+npm install @pipedream/connect-react
+```
+
+You also need the SDK packages:
+
+```bash
+npm install @pipedream/sdk
+```
+
+## Set up environment variables
+
+Create a `.env.local` file (or set these in your deployment environment):
+
+```bash
+# Origins allowed to use the connect token (must match your frontend)
+PIPEDREAM_ALLOWED_ORIGINS=["https://yourapp.com"]
+
+# Your Pipedream OAuth client credentials — keep these server-side only
+PIPEDREAM_CLIENT_ID=your_client_id
+PIPEDREAM_CLIENT_SECRET=your_client_secret
+
+# Your Pipedream project ID
+PIPEDREAM_PROJECT_ID=proj_abc123
+```
+
+<Warning>
+  `PIPEDREAM_CLIENT_SECRET` is sensitive. Never expose it in client-side code or commit it to source control.
+</Warning>
+
+## Basic usage
+
+The example below uses Next.js Server Actions to generate the connect token on the server and `ComponentFormContainer` to render the form on the client.
+
+<CodeGroup>
+
+```typescript actions.ts
+"use server";
+import { createBackendClient } from "@pipedream/sdk/server";
+
+const {
+  NODE_ENV,
+  PIPEDREAM_ALLOWED_ORIGINS,
+  PIPEDREAM_CLIENT_ID,
+  PIPEDREAM_CLIENT_SECRET,
+  PIPEDREAM_PROJECT_ID,
+} = process.env;
+
+const client = createBackendClient({
+  environment: NODE_ENV,
+  projectId: PIPEDREAM_PROJECT_ID,
+  credentials: {
+    clientId: PIPEDREAM_CLIENT_ID,
+    clientSecret: PIPEDREAM_CLIENT_SECRET,
+  },
+});
+
+export async function fetchToken(opts: { externalUserId: string }) {
+  return await client.createConnectToken({
+    external_user_id: opts.externalUserId,
+    allowed_origins: JSON.parse(PIPEDREAM_ALLOWED_ORIGINS || "[]"),
+  });
+}
+```
+
+```tsx page.tsx
+"use client";
+import { useState } from "react";
+import { createFrontendClient } from "@pipedream/sdk/browser";
+import {
+  ComponentFormContainer,
+  FrontendClientProvider,
+} from "@pipedream/connect-react";
+import { fetchToken } from "./actions";
+
+export default function Page() {
+  const userId = "my-authed-user-id";
+  const client = createFrontendClient({
+    externalUserId: userId,
+    tokenCallback: fetchToken,
+  });
+
+  const [configuredProps, setConfiguredProps] = useState({
+    text: "hello slack!",
+  });
+
+  return (
+    <FrontendClientProvider client={client}>
+      <ComponentFormContainer
+        userId={userId}
+        componentKey="slack-send-message"
+        configuredProps={configuredProps}
+        onUpdateConfiguredProps={setConfiguredProps}
+      />
+    </FrontendClientProvider>
+  );
+}
+```
+
+</CodeGroup>
+
+## Components
+
+### `FrontendClientProvider`
+
+Required wrapper that provides the browser client to all `@pipedream/connect-react` components.
+
+```tsx
+<FrontendClientProvider client={client}>
+  {/* your components */}
+</FrontendClientProvider>
+```
+
+<ParamField path="client" type="BrowserClient" required>
+  The browser client created with `createFrontendClient()`.
+</ParamField>
+
+---
+
+### `ComponentFormContainer`
+
+Looks up a component by key in the Pipedream registry and renders a fully interactive configuration form.
+
+```tsx
+<ComponentFormContainer
+  userId={userId}
+  componentKey="slack-send-message"
+  configuredProps={configuredProps}
+  onUpdateConfiguredProps={setConfiguredProps}
+  onSubmit={(ctx) => console.log("Submitted:", ctx)}
+/>
+```
+
+<ParamField path="componentKey" type="string" required>
+  The registry key of the action or trigger to load (e.g. `"slack-send-message"`, `"github-new-issue"`). Find keys in the [Pipedream component registry](https://github.com/PipedreamHQ/pipedream/tree/master/components).
+</ParamField>
+
+<ParamField path="userId" type="string" required>
+  The external user ID configuring the form.
+</ParamField>
+
+<ParamField path="configuredProps" type="Record<string, any>">
+  The current configured prop values. Store this in state and pass the setter to `onUpdateConfiguredProps`.
+</ParamField>
+
+<ParamField path="onUpdateConfiguredProps" type="(v: Record<string, any>) => void">
+  Called whenever a prop value changes. Use the updated values to call `runAction()` on your server.
+</ParamField>
+
+<ParamField path="onSubmit" type="(ctx: FormContext) => void">
+  When provided, shows a submit button and calls this function on click.
+</ParamField>
+
+<ParamField path="propNames" type="string[]">
+  Restrict which props are shown in the form.
+</ParamField>
+
+<ParamField path="hideOptionalProps" type="boolean">
+  When `true`, hides the optional props section.
+</ParamField>
+
+<ParamField path="oauthAppConfig" type="Record<string, string>">
+  Map of app name slugs to OAuth app IDs, used when connecting accounts with your own OAuth clients.
+
+  ```tsx
+  oauthAppConfig={{
+    github: "oa_xxxxxxx",
+    slack: "oa_xxxxxxx",
+  }}
+  ```
+</ParamField>
+
+<ParamField path="enableDebugging" type="boolean">
+  Shows SDK errors inline in the form. Requires `sdkResponse` to be set.
+</ParamField>
+
+<ParamField path="sdkResponse" type="unknown[] | unknown">
+  The response from `runAction()` or `deployTrigger()`. Used to surface errors in the form when `enableDebugging` is `true`.
+</ParamField>
+
+---
+
+### `ComponentForm`
+
+Like `ComponentFormContainer` but accepts a pre-loaded component object instead of a registry key.
+
+```tsx
+import { ComponentForm } from "@pipedream/connect-react";
+
+<ComponentForm
+  component={loadedComponent}
+  userId={userId}
+  configuredProps={configuredProps}
+  onUpdateConfiguredProps={setConfiguredProps}
+/>
+```
+
+## OAuth app configuration
+
+To use your own OAuth clients for specific apps, pass an `oauthAppConfig` map to `ComponentFormContainer`:
+
+```tsx
+const oauthAppConfig = {
+  github: "oa_xxxxxxx",
+  google_sheets: "oa_xxxxxxx",
+  slack: "oa_xxxxxxx",
+};
+
+<ComponentFormContainer
+  userId={userId}
+  componentKey="slack-send-message-to-channel"
+  configuredProps={configuredProps}
+  onUpdateConfiguredProps={setConfiguredProps}
+  oauthAppConfig={oauthAppConfig}
+/>;
+```
+
+<Note>
+  OAuth app IDs (e.g. `oa_xxxxxxx`) are not sensitive and are safe to include in client-side code. Only the `clientSecret` must stay on the server.
+</Note>

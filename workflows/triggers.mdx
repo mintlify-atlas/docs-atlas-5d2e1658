@@ -1,0 +1,196 @@
+---
+title: "Triggers"
+description: "Every workflow starts with a trigger. Learn about HTTP, schedule, and app event triggers and how to configure them."
+---
+
+A trigger is the first step in every workflow. It defines the event that causes the workflow to run. Pipedream supports three trigger types.
+
+<CardGroup cols={3}>
+  <Card title="HTTP / Webhook" icon="globe">
+    Pipedream generates a unique URL. Any HTTP request to that URL starts the workflow.
+  </Card>
+  <Card title="Schedule" icon="clock">
+    Run the workflow on a cron expression or a fixed interval.
+  </Card>
+  <Card title="App events" icon="bolt">
+    Watch a third-party app (GitHub, Slack, Google Sheets, etc.) and trigger on new data.
+  </Card>
+</CardGroup>
+
+## HTTP / Webhook triggers
+
+When you choose the HTTP trigger, Pipedream provisions a unique endpoint URL for your workflow:
+
+```
+https://eo1a2b3c4d.m.pipedream.net
+```
+
+Any HTTP method and any path works. The full request — method, headers, query parameters, and body — is available in the trigger event.
+
+### The trigger event object
+
+```json
+{
+  "method": "POST",
+  "path": "/",
+  "query": { "source": "newsletter" },
+  "headers": {
+    "content-type": "application/json",
+    "x-custom-header": "value"
+  },
+  "body": { "user_id": 42, "action": "signup" },
+  "url": "https://eo1a2b3c4d.m.pipedream.net"
+}
+```
+
+Access these fields in any downstream step:
+
+```javascript
+steps.trigger.event.body        // parsed JSON body
+steps.trigger.event.headers     // all request headers
+steps.trigger.event.query       // query string params
+steps.trigger.event.method      // HTTP method
+```
+
+### Sending a custom HTTP response
+
+By default the trigger returns `{ "success": true }` with a `200` status. You can configure the response status code, content type, and body in the trigger step's settings panel — no code required.
+
+### Building a custom HTTP source
+
+You can write your own HTTP event source using `$.interface.http`. Here is the minimal example from the Pipedream README:
+
+```javascript
+export default {
+  name: "http",
+  version: "0.0.1",
+  props: {
+    http: "$.interface.http",
+  },
+  run(event) {
+    console.log(event); // event contains method, headers, body, etc.
+  },
+};
+```
+
+The production `new-requests` source adds configurable response settings and selective body-only emission:
+
+```javascript
+export default {
+  key: "http-new-requests",
+  name: "New Requests",
+  version: "0.1.2",
+  type: "source",
+  props: {
+    httpInterface: {
+      type: "$.interface.http",
+      customResponse: true,
+    },
+    resStatusCode: {
+      type: "string",
+      label: "Response Status Code",
+      optional: true,
+      default: "200",
+    },
+    resBody: {
+      type: "string",
+      label: "Response Body",
+      optional: true,
+      default: '{ "success": true }',
+    },
+  },
+  async run(event) {
+    this.httpInterface.respond({
+      status: this.resStatusCode,
+      body: this.resBody,
+    });
+    this.$emit(event, { summary: `${event.method} ${event.path}` });
+  },
+};
+```
+
+## Schedule triggers
+
+The schedule trigger runs your workflow on a cron expression or a preset interval. Pipedream uses standard cron syntax.
+
+### Cron expression examples
+
+| Expression | Meaning |
+|------------|---------|
+| `0 9 * * 1-5` | Every weekday at 9:00 AM UTC |
+| `*/15 * * * *` | Every 15 minutes |
+| `0 0 1 * *` | First day of every month at midnight |
+| `0 */4 * * *` | Every 4 hours |
+
+### Custom interval source
+
+Under the hood, Pipedream's schedule trigger uses `$.interface.timer`. Here's what that looks like in a custom source:
+
+```javascript
+export default {
+  name: "Custom Interval",
+  version: "0.0.2",
+  key: "schedule-custom-interval",
+  type: "source",
+  description: "Trigger your workflow every N hours, minutes, or seconds.",
+  props: {
+    cron: {
+      type: "$.interface.timer",
+      label: "Cron Schedule",
+      description: "Enter a cron expression",
+    },
+  },
+};
+```
+
+The `$.interface.timer` prop renders a cron builder in the workflow editor.
+
+### Timer event object
+
+When the workflow runs on a schedule, `steps.trigger.event` contains:
+
+```json
+{
+  "timestamp": 1712757600,
+  "interval_seconds": 900
+}
+```
+
+## App event triggers
+
+App event triggers use Pipedream event sources to watch a third-party service and emit events when new data arrives. Examples:
+
+- **GitHub** — new pull request, new issue, new commit
+- **Slack** — new message in a channel
+- **Google Sheets** — new or updated row
+- **RSS** — new feed item
+- **Twitter / X** — new tweet matching a keyword
+
+To use an app event trigger, select **Select a trigger**, search for the app, and choose an event type. Pipedream will prompt you to connect your account and configure any required options (repo name, channel ID, etc.).
+
+You can also [build custom event sources](/sources/building-sources) to trigger on any data from any API.
+
+<Tip>Event sources run independently of your workflow. A single source can trigger multiple workflows simultaneously.</Tip>
+
+## Choosing the right trigger
+
+<AccordionGroup>
+  <Accordion title="When should I use an HTTP trigger?">
+    Use an HTTP trigger when:
+    - Another service or app needs to call your workflow directly (webhooks from Stripe, GitHub, Shopify, etc.)
+    - You want to call the workflow manually from a script or CLI
+    - You're building a backend API endpoint
+  </Accordion>
+  <Accordion title="When should I use a schedule trigger?">
+    Use a schedule trigger when:
+    - You want to run a workflow at a fixed time (daily reports, weekly digests)
+    - You need to poll an API that doesn't support webhooks
+    - You want to run periodic maintenance or cleanup tasks
+  </Accordion>
+  <Accordion title="When should I use an app event trigger?">
+    Use an app event trigger when:
+    - You want to react to real-time events in a connected app (new GitHub issue, new Slack message)
+    - The app supports webhooks but you don't want to manage the webhook subscription yourself
+    - You want to use one of Pipedream's 1,000+ pre-built event sources
+  </Accordion>
+</AccordionGroup>

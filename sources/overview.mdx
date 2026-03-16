@@ -1,0 +1,70 @@
+---
+title: "Event sources"
+description: "Event sources watch for new data and emit events that trigger your workflows."
+---
+
+## What is an event source?
+
+An event source is a component that watches a service for new data and emits an event each time something happens. When a source emits an event, any workflows linked to that source run immediately.
+
+Sources handle the polling, webhook registration, and deduplication logic for you — your workflow steps only need to process the event data.
+
+## How sources work
+
+1. You deploy a source and connect it to a service (for example, a GitHub repository or an RSS feed).
+2. The source listens for new data, either by registering a webhook with the service or polling it on a schedule.
+3. When new data arrives, the source calls `this.$emit()` to emit an event.
+4. Each linked workflow runs with the event data available in `steps.trigger.event`.
+
+## Source types
+
+<CardGroup cols={3}>
+  <Card title="HTTP" icon="globe">
+    Exposes a unique HTTPS endpoint. Any HTTP request to that URL triggers an event. Use this for webhooks from any service that can send HTTP requests.
+  </Card>
+  <Card title="Timer" icon="clock">
+    Runs on a schedule — every minute, every hour, or with a custom cron expression. Use this to poll APIs or process data at regular intervals.
+  </Card>
+  <Card title="App" icon="plug">
+    Pre-built sources for specific services like GitHub, Slack, Airtable, and hundreds more. These handle authentication and webhook registration automatically.
+  </Card>
+</CardGroup>
+
+## The simplest HTTP source
+
+This source exposes an HTTP endpoint and emits the full request — method, headers, query parameters, and body — as an event:
+
+```javascript
+export default {
+  name: "http",
+  version: "0.0.1",
+  props: {
+    http: "$.interface.http",
+  },
+  run(event) {
+    console.log(event); // event contains method, path, headers, body, etc.
+    this.$emit(event, {
+      summary: `${event.method} ${event.path}`,
+    });
+  },
+};
+```
+
+When you deploy this source, Pipedream provisions a unique HTTPS URL. Send any HTTP request to that URL and the source emits it as an event.
+
+## Pre-built sources
+
+Pipedream maintains over 1,000 pre-built sources for popular services. You can find them in the workflow trigger selector or browse them at [pipedream.com/apps](https://pipedream.com/apps).
+
+Pre-built sources are open source. You can find all source code in the [`components` directory](https://github.com/PipedreamHQ/pipedream/tree/master/components) of the Pipedream GitHub repository.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Building sources" icon="hammer" href="/sources/building-sources">
+    Learn how to build a custom event source using HTTP, timer, and database interfaces.
+  </Card>
+  <Card title="Consuming events" icon="inbox" href="/sources/consuming-events">
+    Learn how to link sources to workflows and retrieve events via the REST API or SSE.
+  </Card>
+</CardGroup>

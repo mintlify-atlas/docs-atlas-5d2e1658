@@ -1,0 +1,137 @@
+---
+title: "Self-hosting"
+description: "Run the Pipedream MCP server locally or host it yourself using the reference implementation."
+---
+
+<Warning>
+  The self-hosted MCP server is a **reference implementation** and is no longer actively maintained. For production use, use the hosted server at `mcp.pipedream.com` instead. See [Getting started](/connect/mcp/getting-started).
+</Warning>
+
+The reference implementation shows how the Pipedream MCP server works and lets you run it locally for development or host a customized version.
+
+## Prerequisites
+
+- Node.js 18 or later
+- pnpm
+- A Pipedream project and OAuth client credentials
+
+## Quick start with npx
+
+The fastest way to run the server locally is with `npx`:
+
+```bash
+npx @pipedream/mcp
+```
+
+Set the required environment variables first (see below).
+
+## Manual setup
+
+<Steps>
+  <Step title="Clone and install">
+    ```bash
+    git clone https://github.com/PipedreamHQ/pipedream.git
+    cd pipedream/modelcontextprotocol
+    cp .env.example .env
+    pnpm install
+    ```
+  </Step>
+  <Step title="Set environment variables">
+    Edit `.env` and fill in your credentials:
+
+    ```bash
+    PIPEDREAM_CLIENT_ID=your_client_id
+    PIPEDREAM_CLIENT_SECRET=your_client_secret
+    PIPEDREAM_PROJECT_ID=your_project_id
+    PIPEDREAM_PROJECT_ENVIRONMENT=development
+    ```
+
+    | Variable | Description |
+    |---|---|
+    | `PIPEDREAM_CLIENT_ID` | Your Pipedream OAuth client ID |
+    | `PIPEDREAM_CLIENT_SECRET` | Your Pipedream OAuth client secret |
+    | `PIPEDREAM_PROJECT_ID` | Your Pipedream project ID |
+    | `PIPEDREAM_PROJECT_ENVIRONMENT` | `development` or `production` |
+  </Step>
+  <Step title="Start the server">
+    Start with Streamable HTTP transport (recommended for development):
+
+    ```bash
+    pnpm dev:http
+    ```
+
+    The server listens on port 3010.
+  </Step>
+</Steps>
+
+## Transports
+
+The reference server supports two transports:
+
+### Streamable HTTP
+
+```
+http://localhost:3010/v1/{external_user_id}/{app}
+```
+
+Use with the MCP Inspector or any client that supports Streamable HTTP.
+
+### SSE (Server-Sent Events)
+
+```
+http://localhost:3010/{external_user_id}/{app}
+```
+
+## Routes
+
+### App-specific: `/{external_user_id}/{app}`
+
+Exposes all tools for a single app for a given user. For example:
+
+```
+http://localhost:3010/user_123/slack
+http://localhost:3010/user_123/github
+```
+
+- `external_user_id` — Your user's ID in your system.
+- `app` — The app's name slug (e.g. `slack`, `github`). Find slugs in the **Authentication** section of any app at [pipedream.com/apps](https://pipedream.com/apps).
+
+### Dynamic: `/{external_user_id}`
+
+```
+http://localhost:3010/user_123
+```
+
+Exposes all tools for all of the user's connected apps. Experimental — requires the MCP client to support dynamic tool updates.
+
+## Debug mode
+
+Set `PD_SDK_DEBUG=true` to log all Connect API requests and responses:
+
+```bash
+PD_SDK_DEBUG=true pnpm dev:http
+```
+
+## Test with the MCP inspector
+
+Use the official MCP inspector to browse and call tools interactively:
+
+```bash
+npx @modelcontextprotocol/inspector
+```
+
+Connect to `http://localhost:3010/v1/{external_user_id}/{app}` for Streamable HTTP or `http://localhost:3010/{external_user_id}/{app}` for SSE.
+
+## Connect the server to Cursor
+
+While developing locally, you can point Cursor at your local server:
+
+```json
+{
+  "mcpServers": {
+    "pipedream-local": {
+      "url": "http://localhost:3010/user_123/slack"
+    }
+  }
+}
+```

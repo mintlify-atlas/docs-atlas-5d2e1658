@@ -1,0 +1,121 @@
+---
+title: "Contributing components"
+description: "How to contribute new and updated components to the Pipedream open-source registry."
+---
+
+The Pipedream component registry is open source. All pre-built sources and actions live in the [PipedreamHQ/pipedream](https://github.com/PipedreamHQ/pipedream) repository under the `components/` directory. You can contribute new components, fix bugs, and improve existing ones.
+
+## Before you start
+
+Read the [component guidelines](/components/publishing/guidelines) to understand naming conventions, code style requirements, and quality standards. Review a few existing components in the `components/` directory to get a feel for the patterns used.
+
+## Contributing process
+
+<Steps>
+  <Step title="Fork the repository">
+    Fork [PipedreamHQ/pipedream](https://github.com/PipedreamHQ/pipedream) on GitHub, then clone your fork locally:
+
+    ```bash
+    git clone https://github.com/YOUR_USERNAME/pipedream.git
+    cd pipedream
+    ```
+  </Step>
+
+  <Step title="Create a branch">
+    Create a new branch from `master` with a descriptive name:
+
+    ```bash
+    git checkout -b add-github-new-release-source
+    ```
+  </Step>
+
+  <Step title="Add your component">
+    Create your component in the correct `components/app_name/` directory. Follow the existing directory structure:
+
+    ```text
+    components/
+      github/
+        sources/
+          new-release/         # Your new source
+            new-release.mjs
+    ```
+
+    If you're adding a component for an app that doesn't yet have a directory, create one. Also create an `app_name.app.mjs` file for the app definition.
+  </Step>
+
+  <Step title="Follow naming conventions">
+    Make sure your component follows the [naming conventions](/components/publishing/guidelines#naming-conventions):
+
+    - `key`: `app_name-component_name` (for example, `github-new-release`)
+    - `name`: Title case description (for example, `New Release`)
+    - `description`: Clear sentence starting with the correct verb
+    - `version`: Start at `0.1.0`
+  </Step>
+
+  <Step title="Test your component">
+    Install the [Pipedream CLI](https://pipedream.com/docs/cli/reference/) and add your API key:
+
+    ```bash
+    npm install -g @pipedream/sdk
+    pd login
+    ```
+
+    Deploy and test your component:
+
+    ```bash
+    # Deploy a source
+    pd deploy components/github/sources/new-release/new-release.mjs
+
+    # Deploy an action
+    pd publish components/github/actions/create-issue/create-issue.mjs
+    ```
+
+    Verify the component works end-to-end with a real connected account.
+  </Step>
+
+  <Step title="Submit a pull request">
+    Push your branch and open a pull request against `master`:
+
+    ```bash
+    git add .
+    git commit -m "Add github-new-release source component"
+    git push origin add-github-new-release-source
+    ```
+
+    Then open a pull request on GitHub. A Pipedream team member is automatically notified and will review your PR.
+  </Step>
+</Steps>
+
+## Gitpod development environment
+
+You can develop components entirely in your browser without installing any local dependencies using Gitpod:
+
+1. Fork the repository
+2. Add your Pipedream API key to [Gitpod Variables](https://gitpod.io/variables) as `PD_API_KEY`
+3. Open a Gitpod workspace with your fork: `https://gitpod.io/#https://github.com/YOUR_USERNAME/pipedream`
+
+The workspace automatically configures the Pipedream CLI with your API key.
+
+## Review process
+
+After you open a pull request:
+
+- A Pipedream team member reviews the code for adherence to guidelines, correctness, and quality
+- Automated checks run, including a spellchecker on Markdown files
+- The reviewer may request changes before merging
+- Once approved, the component is merged and published to the registry
+
+You can also reach out in the [Pipedream community](https://pipedream.com/community/c/dev/11) or on [Slack](https://pipedream.com/support) if you have questions during the process.
+
+## Updating existing components
+
+When fixing a bug or adding a feature to an existing component:
+
+- Always bump the `version` field
+- For bug fixes: increment the patch version (`0.1.0` → `0.1.1`)
+- For new features: increment the minor version (`0.1.0` → `0.2.0`)
+- For breaking changes (renamed or removed props): increment the major version
+
+## Spellchecking
+
+A spellchecker runs automatically on Markdown files in pull requests. If the check fails, look at the output for misspelled words. To add a legitimate technical term that isn't in the dictionary, add it to `.wordlist.txt` in the repository root.

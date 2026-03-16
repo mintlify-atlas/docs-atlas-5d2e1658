@@ -1,0 +1,79 @@
+---
+title: "Email destination"
+description: "Send email from your workflows to your Pipedream account's email address."
+---
+
+The email destination lets you send email notifications from any Node.js code step. Pipedream delivers the email asynchronously after your step completes.
+
+<Note>
+  By default, emails are sent to the email address associated with your Pipedream account. You cannot send to arbitrary email addresses using `$send.email()`. To send to custom recipients, use an email integration like SendGrid or Postmark.
+</Note>
+
+## Basic usage
+
+```javascript
+$send.email({
+  subject: "New event",
+  text: "An event occurred",
+  html: "<p>An event occurred</p>",
+});
+```
+
+## Parameters
+
+<ParamField path="subject" type="string" required>
+  The subject line of the email.
+</ParamField>
+
+<ParamField path="text" type="string">
+  The plain-text body of the email. At least one of `text` or `html` is required.
+</ParamField>
+
+<ParamField path="html" type="string">
+  The HTML body of the email. When both `text` and `html` are provided, email clients that support HTML will render the HTML version.
+</ParamField>
+
+## Example: alert on workflow errors
+
+Use the email destination in an error-handling step to notify yourself when a workflow fails:
+
+```javascript
+export default defineComponent({
+  async run({ steps, $ }) {
+    const event = steps.trigger.event;
+
+    $send.email({
+      subject: `New order received: #${event.body.orderId}`,
+      text: `Order ${event.body.orderId} was placed by ${event.body.customerEmail}.`,
+      html: `
+        <h2>New order received</h2>
+        <p><strong>Order ID:</strong> ${event.body.orderId}</p>
+        <p><strong>Customer:</strong> ${event.body.customerEmail}</p>
+        <p><strong>Total:</strong> $${event.body.total}</p>
+      `,
+    });
+  },
+});
+```
+
+## Example: daily digest
+
+Pair `$send.email()` with a scheduled trigger to send yourself a daily summary:
+
+```javascript
+export default defineComponent({
+  async run({ steps, $ }) {
+    const summary = steps.build_summary.summary; // from a previous step
+
+    $send.email({
+      subject: `Daily digest — ${new Date().toLocaleDateString()}`,
+      text: summary,
+      html: `<pre>${summary}</pre>`,
+    });
+  },
+});
+```
+
+<Note>
+  Delivery is asynchronous. The `$send.email()` call returns immediately without waiting for the email to be delivered.
+</Note>

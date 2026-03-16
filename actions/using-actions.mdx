@@ -1,0 +1,65 @@
+---
+title: "Using actions"
+description: "Add pre-built actions to a workflow to connect apps and automate operations without writing code."
+---
+
+## Add an action to a workflow
+
+<Steps>
+  <Step title="Open a workflow">
+    Go to [pipedream.com](https://pipedream.com) and open an existing workflow or create a new one.
+  </Step>
+  <Step title="Click the + button">
+    Click the **+** button below any existing step to add a new step after it.
+  </Step>
+  <Step title="Search for an app">
+    Type the name of the app you want to use — for example, `Slack` or `Google Sheets`. Pipedream shows matching apps and their available actions.
+  </Step>
+  <Step title="Select an action">
+    Click the action you want to use, such as **Send Message to a Channel** for Slack or **Add Row** for Google Sheets.
+  </Step>
+  <Step title="Connect your account">
+    If this is the first time you’re using this app, Pipedream prompts you to connect your account. Depending on the app, this uses OAuth (you’ll be redirected to authorize access) or an API key (you paste in your credentials).
+
+    Pipedream stores your credentials securely and reuses them across workflows.
+  </Step>
+  <Step title="Fill in the action's props">
+    Each action has props — inputs that control its behavior. For a Slack **Send Message** action, these include the channel and message text.
+
+    You can enter static values or reference data from upstream steps using the expression editor. For example, to send the body of an HTTP trigger as a Slack message:
+
+    ```
+    {{steps.trigger.event.body.message}}
+    ```
+  </Step>
+  <Step title="Test the action">
+    Click **Test** to run the action with the current prop values. Pipedream shows the action’s output in the step result panel so you can verify it worked before deploying.
+  </Step>
+  <Step title="Deploy the workflow">
+    Click **Deploy** to make the workflow live. The action will run every time the workflow is triggered.
+  </Step>
+</Steps>
+
+## Referencing upstream data
+
+Actions can read output from any upstream step. Use the expression syntax `{{steps.<step_name>.<property>}}` to reference data.
+
+```
+{{steps.trigger.event.body}}         // Full trigger event body
+{{steps.trigger.event.body.email}}   // Specific field from trigger
+{{steps.step_1.$return_value}}       // Return value from step_1
+```
+
+The step name is visible in the step header. You can rename steps to make expressions easier to read.
+
+## Connecting multiple accounts
+
+If you have multiple accounts connected for the same app, click the account selector in the step to switch between them. This is useful when you have separate staging and production accounts.
+
+## Re-using connected accounts
+
+Once you connect an account, it’s available across all your workflows. You don’t need to re-authenticate each time you add an action for the same app.
+
+<Tip>
+You can manage all connected accounts under **Accounts** in the left sidebar.
+</Tip>

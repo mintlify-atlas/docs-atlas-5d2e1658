@@ -1,0 +1,321 @@
+---
+title: "Server client"
+description: "Use the backend client to manage connected accounts, run actions, and create connect tokens from your server."
+---
+
+The server client interacts with the Pipedream Connect API from a trusted server environment. It handles OAuth token management automatically and provides methods for every Connect operation.
+
+<Warning>
+  Never use the server client in browser code. Your OAuth `clientId` and `clientSecret` must stay on the server.
+</Warning>
+
+## Create the client
+
+```typescript
+import { createBackendClient } from "@pipedream/sdk/server";
+
+const client = createBackendClient({
+  environment: "development", // or "production"
+  projectId: "proj_abc123",
+  credentials: {
+    clientId: process.env.PIPEDREAM_CLIENT_ID,
+    clientSecret: process.env.PIPEDREAM_CLIENT_SECRET,
+  },
+});
+```
+
+### Configuration options
+
+<ParamField path="environment" type='"development" | "production"' required>
+  The environment your project is running in. Must be either `"development"` or `"production"`. This field is required — the client throws if it is missing or invalid.
+</ParamField>
+
+<ParamField path="projectId" type="string" required>
+  The ID of your Pipedream project. Find this in your [project settings](https://pipedream.com/projects).
+</ParamField>
+
+<ParamField path="credentials" type="OAuthCredentials | { accessToken: string }" required>
+  Authentication credentials. Provide either an OAuth client ID and secret (recommended) or a static access token.
+
+  ```typescript
+  // OAuth credentials (recommended)
+  credentials: {
+    clientId: "your_client_id",
+    clientSecret: "your_client_secret",
+  }
+
+  // Static access token
+  credentials: {
+    accessToken: "your_access_token",
+  }
+  ```
+</ParamField>
+
+<ParamField path="apiHost" type="string">
+  Override the API host. Defaults to `api.pipedream.com`.
+</ParamField>
+
+<ParamField path="workflowDomain" type="string">
+  Base domain for workflow URLs. Defaults to `m.pipedream.net`. Used with [custom domains](https://pipedream.com/docs/workflows/domains).
+</ParamField>
+
+<ParamField path="scope" type="string[]">
+  OAuth scopes to request when obtaining access tokens.
+</ParamField>
+
+---
+
+## createConnectToken()
+
+Creates a short-lived token that authorizes a browser client or end user to connect an account. Pass this token to your frontend — never expose your server credentials there.
+
+```typescript
+const tokenResponse = await client.createConnectToken({
+  external_user_id: "user_123",
+  allowed_origins: ["https://app.example.com"],
+});
+
+console.log(tokenResponse.token);           // short-lived token
+console.log(tokenResponse.expires_at);      // ISO 8601 expiry
+console.log(tokenResponse.connect_link_url); // hosted Connect Link URL
+```
+
+### Parameters
+
+<ParamField path="external_user_id" type="string" required>
+  Your end user's ID in your own system. Pipedream uses this to associate connected accounts with your users.
+</ParamField>
+
+<ParamField path="allowed_origins" type="string[]">
+  Origins permitted to use this token when calling the Pipedream API from the browser.
+</ParamField>
+
+<ParamField path="success_redirect_uri" type="string">
+  URL to redirect the user to after a successful connection.
+</ParamField>
+
+<ParamField path="error_redirect_uri" type="string">
+  URL to redirect the user to if the connection fails.
+</ParamField>
+
+<ParamField path="webhook_uri" type="string">
+  Webhook URL that Pipedream calls on connection success or failure.
+</ParamField>
+
+### Response
+
+<ResponseField name="token" type="string">
+  The short-lived connect token to pass to the browser client.
+</ResponseField>
+
+<ResponseField name="expires_at" type="string">
+  Expiration time in ISO 8601 format.
+</ResponseField>
+
+<ResponseField name="connect_link_url" type="string">
+  The hosted Connect Link URL, ready to share or embed.
+</ResponseField>
+
+---
+
+## getAccounts()
+
+Retrieves connected accounts for a project or a specific user.
+
+```typescript
+// All accounts in the project
+const { data } = await client.getAccounts();
+
+// Accounts for a specific user
+const { data } = await client.getAccounts({
+  external_user_id: "user_123",
+});
+
+// Accounts for a specific app
+const { data } = await client.getAccounts({
+  external_user_id: "user_123",
+  app: "slack",
+});
+
+// Include raw credentials in the response
+const { data } = await client.getAccounts({
+  external_user_id: "user_123",
+  include_credentials: true,
+});
+```
+
+### Parameters
+
+<ParamField path="external_user_id" type="string">
+  Filter accounts by your end user's ID.
+</ParamField>
+
+<ParamField path="app" type="string">
+  Filter by app name slug (e.g. `"slack"`) or app ID.
+</ParamField>
+
+<ParamField path="oauth_app_id" type="string">
+  Filter by OAuth app ID.
+</ParamField>
+
+<ParamField path="include_credentials" type="boolean">
+  When `true`, the response includes raw credentials (API keys, tokens) for each account.
+</ParamField>
+
+<ParamField path="after" type="string">
+  Cursor for forward pagination.
+</ParamField>
+
+<ParamField path="before" type="string">
+  Cursor for backward pagination.
+</ParamField>
+
+<ParamField path="limit" type="number">
+  Maximum number of accounts to return.
+</ParamField>
+
+---
+
+## getAccountById()
+
+Retrieves a single connected account by its ID.
+
+```typescript
+const account = await client.getAccountById("apn_abc123");
+console.log(account.name, account.healthy);
+
+// Include credentials
+const account = await client.getAccountById("apn_abc123", {
+  include_credentials: true,
+});
+console.log(account.credentials);
+```
+
+### Parameters
+
+<ParamField path="accountId" type="string" required>
+  The ID of the account to retrieve (e.g. `"apn_abc123"`).
+</ParamField>
+
+<ParamField path="include_credentials" type="boolean">
+  When `true`, the response includes the account's raw credentials.
+</ParamField>
+
+---
+
+## deleteAccount()
+
+Deletes a single connected account by ID.
+
+```typescript
+await client.deleteAccount("apn_abc123");
+```
+
+### Additional deletion methods
+
+```typescript
+// Delete all accounts for a specific app
+await client.deleteAccountsByApp("app_id");
+
+// Delete all accounts for an external user
+await client.deleteExternalUser("user_123");
+```
+
+---
+
+## getApp()
+
+Retrieves metadata for a Pipedream app by its name slug or ID.
+
+```typescript
+const { data: app } = await client.getApp("slack");
+console.log(app.name, app.auth_type, app.img_src);
+```
+
+### Parameters
+
+<ParamField path="idOrNameSlug" type="string" required>
+  The app's name slug (e.g. `"slack"`, `"google_sheets"`) or its ID. Find name slugs in the **Authentication** section of any app page at [pipedream.com/apps](https://pipedream.com/apps).
+</ParamField>
+
+---
+
+## runAction()
+
+Invokes a Pipedream action component on behalf of one of your end users. Use this to execute any of the 10,000+ pre-built actions in the Pipedream registry.
+
+```typescript
+const response = await client.runAction({
+  externalUserId: "user_123",
+  actionId: {
+    key: "slack-send-message",
+  },
+  configuredProps: {
+    slack: {
+      authProvisionId: "apn_abc123",
+    },
+    channel: "#general",
+    text: "Hello from Pipedream!",
+  },
+});
+
+console.log(response.exports); // values from $.export()
+console.log(response.ret);     // return value
+console.log(response.os);      // logs
+```
+
+### Parameters
+
+<ParamField path="externalUserId" type="string" required>
+  Your end user's ID. The action runs using that user's connected accounts.
+</ParamField>
+
+<ParamField path="actionId" type="string | { key: string }" required>
+  The action's unique key from the Pipedream registry (e.g. `"slack-send-message"`) or an object with a `key` property.
+</ParamField>
+
+<ParamField path="configuredProps" type="object" required>
+  The configured prop values for the action. Include the app's `authProvisionId` from the user's connected account.
+</ParamField>
+
+<ParamField path="dynamicPropsId" type="string">
+  The ID of the last prop reload, used when the action has dynamic props.
+</ParamField>
+
+<ParamField path="stashId" type="string | boolean">
+  Sync the action's `/tmp` directory with a File Stash to persist files across runs for up to 1 day. Pass `true` to auto-generate a stash ID.
+</ParamField>
+
+---
+
+## makeProxyRequest()
+
+Proxies an API request through Pipedream, using a connected user's stored credentials to authenticate the downstream request.
+
+```typescript
+const response = await client.makeProxyRequest(
+  {
+    searchParams: {
+      external_user_id: "user_123",
+      account_id: "apn_abc123",
+    },
+  },
+  {
+    url: "https://slack.com/api/conversations.list",
+    options: {
+      method: "GET",
+    },
+  },
+);
+```
+
+---
+
+## getProjectInfo()
+
+Retrieves project-level metadata, including the list of linked apps.
+
+```typescript
+const info = await client.getProjectInfo();
+console.log(info.apps);
+```
